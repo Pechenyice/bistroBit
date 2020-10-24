@@ -89,44 +89,41 @@ exchangeRatesWSServer.on('connection', function (socket, req) {
 });
 (function updateExchangeRateWorker() {
     return __awaiter(this, void 0, void 0, function () {
-        var rates, message, e_1, _a, _b, client;
-        var e_2, _c;
+        var rates, message, _a, _b, client;
+        var e_1, _c;
         return __generator(this, function (_d) {
-            switch (_d.label) {
-                case 0:
-                    _d.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, garantexApi.fetchExchangeRates()];
-                case 1:
-                    rates = _d.sent();
-                    return [3 /*break*/, 3];
-                case 2:
-                    e_1 = _d.sent();
-                    return [3 /*break*/, 3];
-                case 3:
-                    if (rates) {
-                        message = JSON.stringify(rates);
-                    }
-                    else {
-                        message = JSON.stringify({
-                            errorMessage: 'Can\'t resolve exchange rates from garantex API'
-                        });
-                    }
-                    try {
-                        for (_a = __values(exchangeRatesWSServer.clients), _b = _a.next(); !_b.done; _b = _a.next()) {
-                            client = _b.value;
-                            client.send(message);
-                        }
-                    }
-                    catch (e_2_1) { e_2 = { error: e_2_1 }; }
-                    finally {
-                        try {
-                            if (_b && !_b.done && (_c = _a["return"])) _c.call(_a);
-                        }
-                        finally { if (e_2) throw e_2.error; }
-                    }
-                    setTimeout(updateExchangeRateWorker, 3000);
-                    return [2 /*return*/];
+            try {
+                // rates = await garantexApi.fetchExchangeRates();
+                rates = {
+                    btc_rub: (Math.random() * 10000).toFixed(2),
+                    eth_rub: (Math.random() * 1000).toFixed(2),
+                    usdt_rub: (Math.random() * 100).toFixed(2)
+                };
             }
+            catch (e) { }
+            if (rates) {
+                message = JSON.stringify(rates);
+            }
+            else {
+                message = JSON.stringify({
+                    errorMessage: 'Can\'t resolve exchange rates from garantex API'
+                });
+            }
+            try {
+                for (_a = __values(exchangeRatesWSServer.clients), _b = _a.next(); !_b.done; _b = _a.next()) {
+                    client = _b.value;
+                    client.send(message);
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_b && !_b.done && (_c = _a["return"])) _c.call(_a);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            setTimeout(updateExchangeRateWorker, 3000);
+            return [2 /*return*/];
         });
     });
 })();
