@@ -1,0 +1,25 @@
+{
+  "name": "bistroBit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "out/main.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "start": "sudo node out/main.js",
+    "dev-start": "npm run build && npm start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^4.17.8",
+    "@types/node": "^14.14.2",
+    "@types/ws": "^7.2.7"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1",
+    "ws": "^7.3.1"
+  }
+}

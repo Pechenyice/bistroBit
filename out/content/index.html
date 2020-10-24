@@ -1,0 +1,12 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <h1>Default Router</h1>
+        <script>
+            let socket = new WebSocket('ws://localhost:3000/exchangeRatesWSServer');
+            socket.onopen = console.log;
+            socket.onmessage = console.log;
+        </script>
+    </body>
+</html>
