@@ -59,7 +59,7 @@ exchangeRatesWSServer.on('connection', (socket, req) => {
     } catch (e) {}
 
     if (rates) {
-        message = JSON.stringify(rates);
+        message = JSON.stringify({data: rates});
     } else {
         message = JSON.stringify({
             errorMessage: 'Can\'t resolve exchange rates from garantex API'
@@ -73,14 +73,37 @@ exchangeRatesWSServer.on('connection', (socket, req) => {
     setTimeout(updateExchangeRateWorker, 3000);
 })();
 
+const exchangeProcessWSServer = new ws.Server({noServer: true});
+
+let exchangeSessions = new Map();
+
+exchangeProcessWSServer.on('connection', (socket, req) => {
+    exchangeSessions.set(socket, {});
+    let d: ws.Data;
+    socket.on('message', (data) => {
+        let parsedData;
+        try {
+            let parsedData = JSON.parse(data.toString());
+        } catch (e) {
+            exchangeSessions.delete(socket);
+            socket.terminate();
+            return;
+        }
+    });
+});
+
 const wsServer = http.createServer();
 
 wsServer.on('upgrade', (req, socket, head) => {
     if (req.url == '/exchangeRatesWSServer') {
-        exchangeRatesWSServer.handleUpgrade(req, socket, head, (client) => {
-            exchangeRatesWSServer.emit('connection', client, req);
+        exchangeRatesWSServer.handleUpgrade(req, socket, head, (socket) => {
+            exchangeRatesWSServer.emit('connection', socket, req);
+        });
+    } else if (req.url == '/exchangeProcessWSServer') {
+        exchangeProcessWSServer.handleUpgrade(req, socket, head, (socket) => {
+            exchangeProcessWSServer.emit('connection', socket, req);
         });
     }
 });
 
-wsServer.listen(3000)
+wsServer.listen(3000);
