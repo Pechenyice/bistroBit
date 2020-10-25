@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let data = localStorage.getItem('light');
     
     let ws = new WebSocket('ws://localhost:3000/exchangeRatesWSServer');
-    let wsPreload = new WebSocket('ws://localhost:3000/newShowStatus');
+    let wsPreload = new WebSocket('ws://localhost:3000/exchangeProcessWSServer');
 
     let rates = document.getElementsByClassName('navLogoRates');
     
@@ -110,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
         currencyLogos[1].classList.toggle("passive");
         currencyLogos[2].classList.toggle("passive");
         currencyNext.classList.toggle("active");
+
     });
 
     currencyBlocks[1].addEventListener('click', () => {
@@ -130,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         currencyLogos[0].classList.toggle("passive");
         currencyLogos[2].classList.toggle("passive");
         currencyNext.classList.toggle("active");
+
     });
 
     currencyBlocks[2].addEventListener('click', () => {
@@ -154,6 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currencyNext.addEventListener('click', () => {
         if (session.currency) {
+            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase }));
+
             document.getElementById('currencyBlock').style.opacity = 0;
             switch (session.currency) {
                 case "BTC" : {
