@@ -75,20 +75,53 @@ exchangeRatesWSServer.on('connection', (socket, req) => {
 
 const exchangeProcessWSServer = new ws.Server({noServer: true});
 
-let exchangeSessions = new Map();
+interface IExcahgeSessionData {
+    currency: 'btc' | 'eth' | 'usdt',
+    address: string,
+    card: string,
+    status: 'waitingCurrency' | 'waitingRequisites' | 'checkingRequisites' | 'checkingBalance'
+}
+let exchangeSessions: Map<ws, IExcahgeSessionData> = new Map();
 
 exchangeProcessWSServer.on('connection', (socket, req) => {
-    exchangeSessions.set(socket, {});
+    exchangeSessions.set(socket, {
+        currency: null,
+        address: null,
+        card: null,
+        status: null
+    });
     let d: ws.Data;
     socket.on('message', (data) => {
-        let parsedData;
+        let parsedData: {
+            action: 'setCurrency' | 'dropCurrency'
+        } = null;
         try {
             let parsedData = JSON.parse(data.toString());
         } catch (e) {
+            let hz = socket.send(JSON.stringify({
+                errorMessage: 'Goodbye'
+            }));
             exchangeSessions.delete(socket);
             socket.terminate();
             return;
         }
+
+        if (parsedData.action == 'setCurrency') {
+            
+        } else if (parsedData.action == 'dropCurrency') {
+            
+        } else {
+            socket.send(JSON.stringify({
+                errorMessage: 'Goodbye'
+            }));
+            exchangeSessions.delete(socket);
+            socket.terminate();
+            return;
+        }
+
+    });
+    socket.on('close', () => {
+        exchangeSessions.delete(socket)
     });
 });
 
