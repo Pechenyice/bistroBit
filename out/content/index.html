@@ -103,14 +103,14 @@
                 </div>
 
                 <div id="animatedLoading"><i class="fas fa-spinner"></i></div>
-                <p class="enterCentered">Поступил платеж ... BTC</p>
+                <p class="enterCentered" id="preloaderServerText">Поступил платеж ... BTC</p>
             </div>
 
             <div class="contentBlock" id="failBlock">
 
                 <div class="contentPreloaderBlockMain">
                     <p class="enterCenteredIcon" id="failIcon"><i class="far fa-times-circle"></i></p>
-                    <p class="enterCentered bigText">Ошибка, перевод на карту не смог быть осуществлен, свяжитесь с нами @telegram</p>
+                    <p class="enterCentered bigText" id="errorServerText">Ошибка, перевод на карту не смог быть осуществлен, свяжитесь с нами @telegram</p>
                 </div>
 
                 <div class="blockButton active" id="failNext"><p><i class="fas fa-arrow-left"></i>&nbsp;Назад</p></div>
@@ -120,7 +120,7 @@
 
                 <div class="contentPreloaderBlockMain">
                     <p class="enterCenteredIcon" id="successIcon"><i class="fas fa-check"></i></p>
-                    <p class="enterCentered bigText">Обмен произведен успешно!<br/>0.005₿ = 4930₽</p>
+                    <p class="enterCentered bigText" id="successServerText">Обмен произведен успешно!<br/>0.005₿ = 4930₽</p>
                 </div>
 
                 <div class="blockButton active" id="successNext"><p><i class="fas fa-home"></i>&nbsp;На главную</p></div>

@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let data = localStorage.getItem('light');
     
     let ws = new WebSocket('ws://localhost:3000/exchangeRatesWSServer');
+    let wsPreload = new WebSocket('ws://localhost:3000/newShowStatus');
+
     let rates = document.getElementsByClassName('navLogoRates');
     
     ws.onmessage = message => {
@@ -14,6 +16,44 @@ document.addEventListener("DOMContentLoaded", () => {
         rates[0].innerHTML = data['rates']['btc_rub'];
         rates[1].innerHTML = data['rates']['eth_rub'];
         rates[2].innerHTML = data['rates']['usdt_rub'];
+    };
+
+    wsPreload.onmessage = message => {
+        message = JSON.parse(message);
+        console.log(message);
+
+        if (message['status'] == 'goodbye') {
+            session.card = "";
+            session.currency = "";
+            session.purse = "";
+            console.log(message['errorMessage']);
+        }
+
+        if (!(message['data']['completed'])) {
+            document.getElementById('preloaderServerText').innerHTML = message['data']['newShowStatus'];
+        } else if (message['status'] == 'failure') {
+            document.getElementById('preloaderBlock').style.opacity = 0;
+
+            setTimeout(() => {
+                    document.getElementById('preloaderBlock').style.display = 'none';
+                    document.getElementById('failBlock').style.opacity = 1;
+                    document.getElementById('failBlock').style.display = 'block';
+            }, 300);
+
+            document.getElementById('errorServerText').innerHTML = message['data']['newShowStatus'];
+
+        } else {
+            document.getElementById('preloaderBlock').style.opacity = 0;
+
+            setTimeout(() => {
+                    document.getElementById('preloaderBlock').style.display = 'none';
+                    document.getElementById('successBlock').style.opacity = 1;
+                    document.getElementById('successBlock').style.display = 'block';
+            }, 300);
+
+            document.getElementById('successServerText').innerHTML = message['data']['newShowStatus'];
+        }
+
     };
 
     if (data == 1) {
@@ -233,22 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
-
-
-
-
-
-
-
-    let response = 0;
-
-
-
-
-
-
-
     document.getElementById('forCopy').addEventListener('click', () => {
         copyToClipboard(document.getElementById('forCopy'));
         document.getElementById('forCopy').style.animationName = 'scale';
@@ -261,25 +285,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('inputBlock').style.display = 'none';
                 document.getElementById('preloaderBlock').style.display = 'block';
                 document.getElementById('preloaderBlock').style.opacity = 1;
-
-
-
-
-                setTimeout(() => {
-                    document.getElementById('preloaderBlock').style.opacity = 0;
-                    if (response) {
-                        document.getElementById('preloaderBlock').style.display = 'none';
-                        document.getElementById('successBlock').style.opacity = 1;
-                        document.getElementById('successBlock').style.display = 'block';
-                    } else {
-                        document.getElementById('preloaderBlock').style.display = 'none';
-                        document.getElementById('failBlock').style.opacity = 1;
-                        document.getElementById('failBlock').style.display = 'block';
-                    }
-                }, 2000);
-
-
-
             }, 300);
         }
     });
