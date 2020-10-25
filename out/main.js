@@ -102,7 +102,7 @@ exchangeRatesWSServer.on('connection', function (socket, req) {
             }
             catch (e) { }
             if (rates) {
-                message = JSON.stringify(rates);
+                message = JSON.stringify({ data: rates });
             }
             else {
                 message = JSON.stringify({
@@ -127,11 +127,33 @@ exchangeRatesWSServer.on('connection', function (socket, req) {
         });
     });
 })();
+var exchangeProcessWSServer = new ws.Server({ noServer: true });
+var exchangeSessions = new Map();
+exchangeProcessWSServer.on('connection', function (socket, req) {
+    exchangeSessions.set(socket, {});
+    var d;
+    socket.on('message', function (data) {
+        var parsedData;
+        try {
+            var parsedData_1 = JSON.parse(data.toString());
+        }
+        catch (e) {
+            exchangeSessions["delete"](socket);
+            socket.terminate();
+            return;
+        }
+    });
+});
 var wsServer = http.createServer();
 wsServer.on('upgrade', function (req, socket, head) {
     if (req.url == '/exchangeRatesWSServer') {
-        exchangeRatesWSServer.handleUpgrade(req, socket, head, function (client) {
-            exchangeRatesWSServer.emit('connection', client, req);
+        exchangeRatesWSServer.handleUpgrade(req, socket, head, function (socket) {
+            exchangeRatesWSServer.emit('connection', socket, req);
+        });
+    }
+    else if (req.url == '/exchangeProcessWSServer') {
+        exchangeProcessWSServer.handleUpgrade(req, socket, head, function (socket) {
+            exchangeProcessWSServer.emit('connection', socket, req);
         });
     }
 });
