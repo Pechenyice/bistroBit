@@ -154,13 +154,14 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             card?: string
         } = null;
         try {
-            let parsedData = JSON.parse(data.toString());
+            parsedData = JSON.parse(data.toString());
         } catch (e) {
             goodbyeSocket(socket, 'Can\'t parse data (Most likely, it is not JSON format)');
             return;
         }
         let sessionData = exchangeSessions.get(socket);
-
+        
+        console.log(parsedData);
         if (!parsedData.action) {
             goodbyeSocket(socket, 'No "action" property in recieved data');
         } else if (parsedData.action == 'setCurrency') {

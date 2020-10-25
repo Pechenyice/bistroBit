@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currencyNext.addEventListener('click', () => {
         if (session.currency) {
-            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase }));
+            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase() }));
 
             document.getElementById('currencyBlock').style.opacity = 0;
             switch (session.currency) {
