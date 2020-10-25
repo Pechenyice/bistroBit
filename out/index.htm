@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://use.fontawesome.com/releases/v5.14.0/css/all.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/all.css">
+    <link rel="stylesheet" href="css/switch.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+    <title>БыстроБит</title>
+    <script src="js/front.js"></script>
+</head>
+<body class="night">
+    <div id="statNav">
+        <p id="navName">БыстроБит</p>
+            <div id="navLogos">
+                <div class="navLogo">
+                    <img src="assets/logo/Bitcoin.png" width="20px" height="20px" />
+                    <p>999000.12</p>
+                </div>
+                <div class="navLogo">
+                    <img src="assets/logo/etherium.png" width="20px" height="20px" />
+                    <p>999000.12</p>
+                </div>
+                <div class="navLogo">
+                    <img src="assets/logo/tether.png" width="20px" height="20px" />
+                    <p>999000.12</p>
+                </div>
+            </div>
+    </div>
+    <div id="telHelp"><a href="tg://resolve?domain=don2quixote"><i class="fab fa-telegram"></i></a></div>
+    <div id="theme">
+        <label class="switch">
+            <input type="checkbox" id="themeSwap">
+            <span class="slider round"></span>
+        </label>
+        <p id="themeText">Тёмная тема</p>
+    </div>
+    <div id="main">
+        <!-- <div id="nav"></div> -->
+        <div id="content">
+
+            <div class="contentBlock" id="currencyBlock">
+                <div class="contentBlockName">Выберите валюту для обмена</div>
+
+                <div id="contentBlockMain">
+
+                    <div class="contentBlockMainBlock">
+                        <img src="assets/logo/Bitcoin.png" />
+                        <p>BTC</p>
+                    </div>
+                    <div class="contentBlockMainBlock">
+                        <img src="assets/logo/etherium.png" />
+                        <p>ETH</p>
+                    </div>
+                    <div class="contentBlockMainBlock">
+                        <img src="assets/logo/tether.png" />
+                        <p>USDT</p>
+                    </div>
+
+                </div>
+
+                <div class="blockButton" id="currencyNext"><p>Обменять&nbsp; <i class="fas fa-arrow-right"></i></p></div>
+            </div>
+
+            <div class="contentBlock" id="inputBlock">
+                <div id="inputBack"><i class="fas fa-arrow-left"></i></div>
+                <div class="contentBlockName">Введите реквизиты</div>
+
+                <div id="contentInputBlockMain">
+
+                    <div class="contentInputBlock">
+                        <div class="question"><i class="far fa-question-circle"></i>
+                            <div class="answer"></div>
+                        </div>
+                        <p class="inputLabel">Адрес кошелька:</p>
+                        <input type="text" name="purse" class="inputInput" id="purseInput" placeholder="3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng"/>
+                        <img src="assets/logo/Bitcoin.png" class="inputImage" id="purseImage" />
+                    </div>
+
+                    <div class="contentInputBlock">
+                        <div class="question"><i class="far fa-question-circle"></i>
+                            <div class="answer"></div>
+                        </div>
+                        <p class="inputLabel">Номер карты:</p>
+                        <input type="text" name="purse" class="inputInput" id="cardInput" placeholder="4276 5500 5327 0297"/>
+                        <img src="" class="inputImage" id="cardImage" />
+                    </div>
+
+                </div>
+
+                <div class="blockButton" id="inputNext"><p>Подтвердить&nbsp; <i class="fas fa-check"></i></p></div>
+            </div>
+
+            <div class="contentBlock" id="preloaderBlock">
+
+                <div class="contentPreloaderBlockMain">
+                    <div class="question mainQuestion"><i class="far fa-question-circle"></i>
+                        <div class="answer"></div>
+                    </div>
+                    <p class="enterCentered">Кошелек для перевода:</p>
+                    <img src="assets/logo/qr.png" id="qr" />
+                    <p class="enterCentered" id="forCopy">3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng&nbsp; <i class="far fa-copy"></i></p>
+                </div>
+
+                <div id="animatedLoading"><i class="fas fa-spinner"></i></div>
+                <p class="enterCentered">Поступил платеж ... BTC</p>
+            </div>
+
+            <div class="contentBlock" id="failBlock">
+
+                <div class="contentPreloaderBlockMain">
+                    <p class="enterCenteredIcon" id="failIcon"><i class="far fa-times-circle"></i></p>
+                    <p class="enterCentered bigText">Ошибка, перевод на карту не смог быть осуществлен, свяжитесь с нами @telegram</p>
+                </div>
+
+                <div class="blockButton active" id="failNext"><p><i class="fas fa-arrow-left"></i>&nbsp;Назад</p></div>
+            </div>
+
+            <div class="contentBlock" id="successBlock">
+
+                <div class="contentPreloaderBlockMain">
+                    <p class="enterCenteredIcon" id="successIcon"><i class="fas fa-check"></i></p>
+                    <p class="enterCentered bigText">Обмен произведен успешно!<br/>0.005₿ = 4930₽</p>
+                </div>
+
+                <div class="blockButton active" id="successNext"><p><i class="fas fa-home"></i>&nbsp;На главную</p></div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
