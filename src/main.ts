@@ -100,10 +100,7 @@ function sendSocket(socket: ws, status: string, errorMessage?: string, data?: an
     } = { status };
     if (errorMessage) dataToSend.errorMessage = errorMessage;
     if (data) dataToSend.data = data;
-    socket.send(JSON.stringify({
-        status: 'goodbye',
-        errorMessage: errorMessage || 'Goodbye'
-    }));
+    socket.send(JSON.stringify(dataToSend));
 }
 
 function goodbyeSocket(socket: ws, errorMessage?: string) {
