@@ -4,6 +4,17 @@ document.addEventListener("DOMContentLoaded", () => {
     let theme = document.getElementById('themeText');
 
     let data = localStorage.getItem('light');
+    
+    let ws = new WebSocket('ws://localhost:3000/exchangeRatesWSServer');
+    let rates = document.getElementsByClassName('navLogoRates');
+    
+    ws.onmessage = message => {
+        data = JSON.parse(message.data);
+        console.log(data);
+        rates[0].innerHTML = data['rates']['btc_rub'];
+        rates[1].innerHTML = data['rates']['eth_rub'];
+        rates[2].innerHTML = data['rates']['usdt_rub'];
+    };
 
     if (data == 1) {
         switcher.checked = true;

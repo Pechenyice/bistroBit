@@ -41,9 +41,6 @@ app.listen(80);
 const exchangeRatesWSServer = new ws.Server({noServer: true});
 
 exchangeRatesWSServer.on('connection', (socket, req) => {
-    socket.send(JSON.stringify({
-        data: 'You\'ve connected to exchange rate\'s server'
-    }));
 });
 
 (async function updateExchangeRateWorker() {
@@ -59,7 +56,7 @@ exchangeRatesWSServer.on('connection', (socket, req) => {
     } catch (e) {}
 
     if (rates) {
-        message = JSON.stringify({data: rates});
+        message = JSON.stringify({rates: rates});
     } else {
         message = JSON.stringify({
             errorMessage: 'Can\'t resolve exchange rates from garantex API'
