@@ -75,7 +75,8 @@ const exchangeProcessWSServer = new ws.Server({noServer: true});
 enum SessionStatus {
     waitingCurrency,
     waitingRequisites,
-    checkingBalance
+    checkingBalance,
+    failed
 }
 
 interface IExcahgeSessionData {
@@ -201,6 +202,8 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 //     showError: 'Указанная карта недействительна'
                 // });
             } else {
+                sessionData.address = parsedData.address;
+                sessionData.card = parsedData.card;
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus: 'Ожидание платежа'
@@ -223,13 +226,23 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                         completed: true,
                         newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
                     });
+                    exchangeSessions.delete(socket);
+                    socket.terminate();
                 } else {
                     failToSocket(socket, 'Error during transaction', {
                         completed: true,
                         newShowStatus: 'Ошибка при совершении перевода'
                     });
+                    sessionData.status = SessionStatus.failed;
                 }
-                goodbyeSocket(socket);
+            }
+        } else if (parsedData.action == 'dropRequisites') {
+            if (sessionData.status != SessionStatus.failed)  {
+                goodbyeSocket(socket, 'Unexpected action (dropRequisites)');
+            } else {
+                sessionData.address = null;
+                sessionData.card = null;
+                sessionData.status = SessionStatus.waitingRequisites;
             }
         } else {
             goodbyeSocket(socket, 'Action ' + parsedData.action + ' does not exist' );
