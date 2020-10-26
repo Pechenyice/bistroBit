@@ -27,6 +27,19 @@ document.addEventListener("DOMContentLoaded", () => {
             session.currency = "";
             session.purse = "";
             console.log(message['errorMessage']);
+
+            document.getElementById('preloaderBlock').style.opacity = 0;
+            document.getElementById('failBlock').style.opacity = 0;
+            document.getElementById('successBlock').style.opacity = 0;
+
+            setTimeout(() => {
+                document.getElementById('preloaderBlock').style.display = 'none';
+                document.getElementById('failBlock').style.display = 'none';
+                document.getElementById('successBlock').style.display = 'none';
+
+                document.getElementById('currencyBlock').style.opacity = 1;
+                document.getElementById('currencyBlock').style.display = 'block';
+        }, 300);
         }
 
         if (!(message['data']['completed'])) {
@@ -156,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currencyNext.addEventListener('click', () => {
         if (session.currency) {
-            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase }));
+            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase() }));
 
             document.getElementById('currencyBlock').style.opacity = 0;
             switch (session.currency) {
@@ -284,6 +297,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('inputNext').addEventListener('click', () => {
         if (session.card && session.purse) {
+
+            wsPreload.send(JSON.stringify({"action": "setRequisites", "address": session.purse.toLowerCase(), "card": session.card.toLowerCase() }));
+
             document.getElementById('inputBlock').style.opacity = 0;
             setTimeout(() => {
                 document.getElementById('inputBlock').style.display = 'none';
