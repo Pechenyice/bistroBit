@@ -13,9 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
     ws.onmessage = message => {
         data = JSON.parse(message.data);
         console.log(data);
-        rates[0].innerHTML = data['rates']['btc_rub'];
-        rates[1].innerHTML = data['rates']['eth_rub'];
-        rates[2].innerHTML = data['rates']['usdt_rub'];
+        if (data['errorMessage']) {
+            rates[0].innerHTML = "X";
+            rates[1].innerHTML = "X";
+            rates[2].innerHTML = "X";
+            return;
+        }
+        rates[0].innerHTML = Math.floor(Number(data['rates']['btc_rub'])*100)/100;
+        rates[1].innerHTML = Math.floor(Number(data['rates']['eth_rub'])*100)/100;
+        rates[2].innerHTML = Math.floor(Number(data['rates']['usdt_rub'])*100)/100;
     };
 
     wsPreload.onmessage = message => {
@@ -31,16 +37,20 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('preloaderBlock').style.opacity = 0;
             document.getElementById('failBlock').style.opacity = 0;
             document.getElementById('successBlock').style.opacity = 0;
+            document.getElementById('inputBlock').style.opacity = 0;
+
+            wsPreload = new WebSocket('ws://localhost:3000/exchangeProcessWSServer');
 
             setTimeout(() => {
                 document.getElementById('preloaderBlock').style.display = 'none';
                 document.getElementById('failBlock').style.display = 'none';
                 document.getElementById('successBlock').style.display = 'none';
+                document.getElementById('inputBlock').style.display = 'none';
 
                 document.getElementById('currencyBlock').style.opacity = 1;
                 document.getElementById('currencyBlock').style.display = 'block';
             }, 300);
-
+          
             return;
         }
 
@@ -201,6 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('inputBack').addEventListener('click', () => {
+        wsPreload.send(JSON.stringify({"action": "dropCurrency"}));
         document.getElementById('purseInput').value = '';
         document.getElementById('cardInput').value = '';
         session.purse = "";
@@ -319,6 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('failNext').addEventListener('click', () => {
+        wsPreload.send(JSON.stringify({"action": "dropRequisites"}));
         document.getElementById('purseInput').value = '';
         document.getElementById('cardInput').value = '';
         session.purse = "";
