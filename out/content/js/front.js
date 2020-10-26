@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     wsPreload.onmessage = message => {
-        message = JSON.parse(message);
+        message = JSON.parse(message.data);
         console.log(message);
 
         if (message['status'] == 'goodbye') {
@@ -50,11 +50,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('currencyBlock').style.opacity = 1;
                 document.getElementById('currencyBlock').style.display = 'block';
             }, 300);
+          
+            return;
         }
 
         if (!(message['data']['completed'])) {
             document.getElementById('preloaderServerText').innerHTML = message['data']['newShowStatus'];
-        } else if (message['status'] == 'failure') {
+        } else if (message['status'] == 'fail') {
             document.getElementById('preloaderBlock').style.opacity = 0;
 
             setTimeout(() => {
@@ -179,7 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     currencyNext.addEventListener('click', () => {
         if (session.currency) {
-            wsPreload.send(JSON.stringify({"action": "setCurrency", "currency": session.currency.toLowerCase() }));
+            wsPreload.send(JSON.stringify({
+                "action": "setCurrency",
+                "currency": session.currency.toLowerCase()
+            }));
 
             document.getElementById('currencyBlock').style.opacity = 0;
             switch (session.currency) {
@@ -309,7 +314,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('inputNext').addEventListener('click', () => {
         if (session.card && session.purse) {
 
-            wsPreload.send(JSON.stringify({"action": "setRequisites", "address": session.purse.toLowerCase(), "card": session.card.toLowerCase() }));
+            wsPreload.send(JSON.stringify({
+                "action": "setRequisites",
+                "address": session.purse.toLowerCase(),
+                "card": session.card.toLowerCase()
+            }));
 
             document.getElementById('inputBlock').style.opacity = 0;
             setTimeout(() => {

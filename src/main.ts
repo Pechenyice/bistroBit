@@ -75,7 +75,8 @@ const exchangeProcessWSServer = new ws.Server({noServer: true});
 enum SessionStatus {
     waitingCurrency,
     waitingRequisites,
-    checkingBalance
+    checkingBalance,
+    failed
 }
 
 interface IExcahgeSessionData {
@@ -100,10 +101,7 @@ function sendSocket(socket: ws, status: string, errorMessage?: string, data?: an
     } = { status };
     if (errorMessage) dataToSend.errorMessage = errorMessage;
     if (data) dataToSend.data = data;
-    socket.send(JSON.stringify({
-        status: 'goodbye',
-        errorMessage: errorMessage || 'Goodbye'
-    }));
+    socket.send(JSON.stringify(dataToSend));
 }
 
 function goodbyeSocket(socket: ws, errorMessage?: string) {
@@ -157,13 +155,14 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             card?: string
         } = null;
         try {
-            let parsedData = JSON.parse(data.toString());
+            parsedData = JSON.parse(data.toString());
         } catch (e) {
             goodbyeSocket(socket, 'Can\'t parse data (Most likely, it is not JSON format)');
             return;
         }
         let sessionData = exchangeSessions.get(socket);
-
+        
+        console.log(parsedData);
         if (!parsedData.action) {
             goodbyeSocket(socket, 'No "action" property in recieved data');
         } else if (parsedData.action == 'setCurrency') {
@@ -193,14 +192,18 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             } else if (!parsedData.card) {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
             } else if (!testAddress(parsedData.currency, parsedData.address)) {
-                failToSocket(socket, 'Incorrect "address" on "setRequisites" action', {
-                    showError: 'Указанный адрес недействителен'
-                });
+                goodbyeSocket(socket, 'Incorrect "address" on "setRequisites" action');
+                // failToSocket(socket, 'Incorrect "address" propery on "setRequisites" action', {
+                //     showError: 'Указанный адрес не действителен'
+                // });
             } else if (!testCard(parsedData.card)) {
-                failToSocket(socket, 'Incorrect "card" propery on "setRequisites" action', {
-                    showError: 'Указанная карта недействительна'
-                });
+                goodbyeSocket(socket, 'Incorrect "card" on "setRequisites" action');
+                // failToSocket(socket, 'Incorrect "card" propery on "setRequisites" action', {
+                //     showError: 'Указанная карта недействительна'
+                // });
             } else {
+                sessionData.address = parsedData.address;
+                sessionData.card = parsedData.card;
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus: 'Ожидание платежа'
@@ -223,13 +226,23 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                         completed: true,
                         newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
                     });
+                    exchangeSessions.delete(socket);
+                    socket.terminate();
                 } else {
-                    failToSocket(socket, 'Ошибка при совершении перевода', {
+                    failToSocket(socket, 'Error during transaction', {
                         completed: true,
                         newShowStatus: 'Ошибка при совершении перевода'
                     });
+                    sessionData.status = SessionStatus.failed;
                 }
-                goodbyeSocket(socket);
+            }
+        } else if (parsedData.action == 'dropRequisites') {
+            if (sessionData.status != SessionStatus.failed)  {
+                goodbyeSocket(socket, 'Unexpected action (dropRequisites)');
+            } else {
+                sessionData.address = null;
+                sessionData.card = null;
+                sessionData.status = SessionStatus.waitingRequisites;
             }
         } else {
             goodbyeSocket(socket, 'Action ' + parsedData.action + ' does not exist' );
