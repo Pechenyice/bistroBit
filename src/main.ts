@@ -191,13 +191,15 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             } else if (!parsedData.card) {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
             } else if (!testAddress(parsedData.currency, parsedData.address)) {
-                failToSocket(socket, 'Incorrect "address" on "setRequisites" action', {
-                    showError: 'Указанный адрес недействителен'
-                });
+                goodbyeSocket(socket, 'Incorrect "address" on "setRequisites" action');
+                // failToSocket(socket, 'Incorrect "address" propery on "setRequisites" action', {
+                //     showError: 'Указанный адрес не действителен'
+                // });
             } else if (!testCard(parsedData.card)) {
-                failToSocket(socket, 'Incorrect "card" propery on "setRequisites" action', {
-                    showError: 'Указанная карта недействительна'
-                });
+                goodbyeSocket(socket, 'Incorrect "card" on "setRequisites" action');
+                // failToSocket(socket, 'Incorrect "card" propery on "setRequisites" action', {
+                //     showError: 'Указанная карта недействительна'
+                // });
             } else {
                 successToSocket(socket, {
                     completed: false,
@@ -222,7 +224,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                         newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
                     });
                 } else {
-                    failToSocket(socket, 'Ошибка при совершении перевода', {
+                    failToSocket(socket, 'Error during transaction', {
                         completed: true,
                         newShowStatus: 'Ошибка при совершении перевода'
                     });
