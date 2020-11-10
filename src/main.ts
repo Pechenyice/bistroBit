@@ -8,11 +8,11 @@ import * as ws from 'ws'
 
 import apiRouter from './apiRouter'
 import defaultRouter from './defaultRouter'
-import { GarantexApi } from './garantexApi'
+import GarantexApi from './garantexApi'
 
 dotenv.config();
 
-const garantexApi = new GarantexApi();
+// const garantexApi = new GarantexApi();
 
 const app = express();
 
