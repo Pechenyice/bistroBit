@@ -10,9 +10,20 @@ import apiRouter from './apiRouter'
 import defaultRouter from './defaultRouter'
 import GarantexApi from './garantexApi'
 
+/* Getting environment variables from .env file */
 dotenv.config();
 
-// const garantexApi = new GarantexApi();
+/* Wrapping code into the async function to have an opportunity
+ * to update garantex api jwt token with "await" statement
+ */
+async function main() {
+
+const garantexApi = new GarantexApi(process.env.GARANTEX_API_UID, {
+    publicKey: process.env.GARANTEX_PUBLIC_KEY,
+    privateKey: process.env.GARANTEX_PRIVATE_KEY
+}, false);
+
+await garantexApi.updateJwt();
 
 const app = express();
 
@@ -40,34 +51,68 @@ app.listen(80);
 
 const exchangeRatesWSServer = new ws.Server({noServer: true});
 
-exchangeRatesWSServer.on('connection', (socket, req) => {
-});
+async function wait(ms: number) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
 
+async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): Promise<number> {
+    let depth = await garantexApi.depth({ market: market });
+    if (!depth.bids) throw depth;
+    else {
+        let totalVolume = 0;
+        let totalPrice = 0;
+        let admittedBidsCount = 0;
+        for (let bid of depth.bids) {
+            totalVolume += parseFloat(bid.volume);
+            totalPrice += parseFloat(bid.price);
+            ++admittedBidsCount;
+            if (totalVolume >= 20) break;
+        }
+        let exchangeRate = totalPrice / admittedBidsCount;
+        return exchangeRate;
+    }
+}
+
+/**
+ * Sending updated information about exchange rates to websocket clients
+ */
 (async function updateExchangeRateWorker() {
-    let rates;
-    let message;
-    try {
-        // rates = await garantexApi.fetchExchangeRates();
-        rates = {
-            btc_rub: (Math.random() * 10000).toFixed(2),
-            eth_rub: (Math.random() * 1000).toFixed(2),
-            usdt_rub: (Math.random() * 100).toFixed(2)
-        };
-    } catch (e) {}
+    /* If no clients on websocket server - don't work */
+    if (exchangeRatesWSServer.clients.size) {
+        let rates;
+        let message;
+        /* Placed here this console.log because once I got error
+         * that crashed process while request to /depth api endpoint
+         */
+        console.log('Trying to get rates');
+        try {
+            let btcrubExchangeRate = calculateExchangeRate('btcrub');
+            let ethrubExchangeRate = calculateExchangeRate('ethrub');
+            let usdtrubExchangeRate = calculateExchangeRate('usdtrub');
+            rates = {
+                btc_rub: await btcrubExchangeRate,
+                eth_rub: await ethrubExchangeRate,
+                usdt_rub: await usdtrubExchangeRate
+            };
+        } catch {}
 
-    if (rates) {
-        message = JSON.stringify({rates: rates});
-    } else {
-        message = JSON.stringify({
-            errorMessage: 'Can\'t resolve exchange rates from garantex API'
-        });
+        if (rates) {
+            message = JSON.stringify({rates: rates});
+        } else {
+            message = JSON.stringify({
+                errorMessage: 'Can\'t resolve exchange rates from garantex API'
+            });
+        }
+
+        for (let client of exchangeRatesWSServer.clients) {
+            client.send(message);
+        }
     }
 
-    for (let client of exchangeRatesWSServer.clients) {
-        client.send(message);
-    }
-
-    setTimeout(updateExchangeRateWorker, 3000);
+    /* Repeat sending data after specified time */
+    setTimeout(updateExchangeRateWorker, parseInt(process.env.UPDATE_EXCHANGE_RATES_INTERVAL) * 1000 || 10000);
 })();
 
 const exchangeProcessWSServer = new ws.Server({noServer: true});
@@ -76,21 +121,24 @@ enum SessionStatus {
     waitingCurrency,
     waitingRequisites,
     checkingBalance,
+    serverWorking,
     failed
-}
+};
 
-interface IExcahgeSessionData {
+interface IExchageSessionData {
     lastAction: number,
     currency: 'btc' | 'eth' | 'usdt',
     address: string,
     card: string,
+    depositAddressId: number,
+    depositAddress: string,
     status: SessionStatus
     // status: 'waitingCurrency' | 'waitingRequisites' | 'checkingRequisites' | 'checkingBalance'
 }
-let exchangeSessions: Map<ws, IExcahgeSessionData> = new Map();
+let exchangeSessions: Map<ws, IExchageSessionData> = new Map();
 
 type anyObject = {
-    [key: string]: string | number | boolean
+    [key: string]: string | number | boolean | anyObject
 };
 
 function sendSocket(socket: ws, status: string, errorMessage?: string, data?: anyObject | string) {
@@ -144,6 +192,8 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         currency: null,
         address: null,
         card: null,
+        depositAddressId: null,
+        depositAddress: null,
         status: SessionStatus.waitingCurrency
     });
 
@@ -187,54 +237,82 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         } else if (parsedData.action == 'setRequisites') {
             if (sessionData.status != SessionStatus.waitingRequisites) {
                 goodbyeSocket(socket, 'Unexpected action (setRequisites)');
-            } else if (!parsedData.address) {
-                goodbyeSocket(socket, 'No "address" propery on "setRequisites" action');
+            // } else if (!parsedData.address) {
+            //     goodbyeSocket(socket, 'No "address" propery on "setRequisites" action');
             } else if (!parsedData.card) {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
-            } else if (!testAddress(parsedData.currency, parsedData.address)) {
-                goodbyeSocket(socket, 'Incorrect "address" on "setRequisites" action');
-                // failToSocket(socket, 'Incorrect "address" propery on "setRequisites" action', {
-                //     showError: 'Указанный адрес не действителен'
-                // });
+            // } else if (!testAddress(parsedData.currency, parsedData.address)) {
+            //     goodbyeSocket(socket, 'Incorrect "address" on "setRequisites" action');
             } else if (!testCard(parsedData.card)) {
                 goodbyeSocket(socket, 'Incorrect "card" on "setRequisites" action');
-                // failToSocket(socket, 'Incorrect "card" propery on "setRequisites" action', {
-                //     showError: 'Указанная карта недействительна'
-                // });
             } else {
-                sessionData.address = parsedData.address;
+                // sessionData.address = parsedData.address;
+                successToSocket(socket, {
+                    completed: false,
+                    newShowStatus: 'Создание кошелька для приёма платежа',
+                });
                 sessionData.card = parsedData.card;
-                successToSocket(socket, {
-                    completed: false,
-                    newShowStatus: 'Ожидание платежа'
-                });
-                await delay(5000);
-                let sum = Math.random().toFixed(6);
-                let course = 990854.13;
-                successToSocket(socket, {
-                    completed: false,
-                    newShowStatus: 'Поступил платёж на ' + sum + ' ' + sessionData.currency.toUpperCase()
-                });
-                await delay(3000);
-                successToSocket(socket, {
-                    completed: false,
-                    newShowStatus: 'Произошёл обмен по курсу 1 ' + sessionData.currency.toUpperCase() + ' = 990845.13 р.'
-                });
-                await delay(3000);
-                if (sessionData.card[15] != '4') {
-                    successToSocket(socket, {
+                sessionData.status = SessionStatus.serverWorking;
+
+                let depositAddress = await garantexApi.additionalDepositAddress({ currency: sessionData.currency });
+                if (!depositAddress.id) {
+                    failToSocket(socket, 'No id field in response from additionalDepositAddress', {
                         completed: true,
-                        newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
+                        newShowStatus: 'Произошла ошибка во время создания кошелька для приёма платежа'
                     });
-                    exchangeSessions.delete(socket);
-                    socket.terminate();
                 } else {
-                    failToSocket(socket, 'Error during transaction', {
-                        completed: true,
-                        newShowStatus: 'Ошибка при совершении перевода'
-                    });
-                    sessionData.status = SessionStatus.failed;
+                    sessionData.depositAddressId = depositAddress.id;
+                    
+                    /* 10 Attempts to get deposit address */
+                    for (let i = 0; i < 10; i++) {
+                        let { address } = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
+                        if (address) {
+                            sessionData.depositAddress = address;
+                            break;
+                        }
+                        await wait(1000);
+                    }
+
+                    if (!sessionData.depositAddress) {
+                        failToSocket(socket, 'Failed to get deposit address', {
+                            completed: true,
+                            newShowStatus: 'Произошла ошибка во время создания кошелька для приёма платежа'
+                        });
+                    } else {
+                        successToSocket(socket, {
+                            completed: false,
+                            newShowStatus: 'Ожидание платежа',
+                            depositAddress: sessionData.depositAddress
+                        });
+                    }
                 }
+                // await delay(5000);
+                // let sum = Math.random().toFixed(6);
+                // let course = 990854.13;
+                // successToSocket(socket, {
+                //     completed: false,
+                //     newShowStatus: 'Поступил платёж на ' + sum + ' ' + sessionData.currency.toUpperCase()
+                // });
+                // await delay(3000);
+                // successToSocket(socket, {
+                //     completed: false,
+                //     newShowStatus: 'Произошёл обмен по курсу 1 ' + sessionData.currency.toUpperCase() + ' = 990845.13 р.'
+                // });
+                // await delay(3000);
+                // if (sessionData.card[15] != '4') {
+                //     successToSocket(socket, {
+                //         completed: true,
+                //         newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
+                //     });
+                //     exchangeSessions.delete(socket);
+                //     socket.terminate();
+                // } else {
+                //     failToSocket(socket, 'Error during transaction', {
+                //         completed: true,
+                //         newShowStatus: 'Ошибка при совершении перевода'
+                //     });
+                //     sessionData.status = SessionStatus.failed;
+                // }
             }
         } else if (parsedData.action == 'dropRequisites') {
             if (sessionData.status != SessionStatus.failed)  {
@@ -249,6 +327,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         }
     });
     socket.on('close', () => {
+        console.log('fuck you lether man');
         exchangeSessions.delete(socket);
     });
 });
@@ -268,3 +347,7 @@ wsServer.on('upgrade', (req, socket, head) => {
 });
 
 wsServer.listen(3000);
+
+}
+
+main();

@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let rates = document.getElementsByClassName('navLogoRates');
     
     ws.onmessage = message => {
-        data = JSON.parse(message.data);
+        let data = JSON.parse(message.data);
         console.log(data);
         if (data['errorMessage']) {
             rates[0].innerHTML = "X";
@@ -25,14 +25,14 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     wsPreload.onmessage = message => {
-        message = JSON.parse(message.data);
-        console.log(message);
+        let data = JSON.parse(message.data);
+        console.log(data);
 
-        if (message['status'] == 'goodbye') {
+        if (data['status'] == 'goodbye') {
             session.card = "";
             session.currency = "";
             session.purse = "";
-            console.log(message['errorMessage']);
+            console.log(data['errorMessage']);
 
             document.getElementById('preloaderBlock').style.opacity = 0;
             document.getElementById('failBlock').style.opacity = 0;
@@ -54,9 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (!(message['data']['completed'])) {
-            document.getElementById('preloaderServerText').innerHTML = message['data']['newShowStatus'];
-        } else if (message['status'] == 'fail') {
+        if (!(data['data']['completed'])) {
+            document.getElementById('preloaderServerText').innerHTML = data['data']['newShowStatus'];
+        } else if (data['status'] == 'fail') {
             document.getElementById('preloaderBlock').style.opacity = 0;
 
             setTimeout(() => {
@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById('failBlock').style.display = 'block';
             }, 300);
 
-            document.getElementById('errorServerText').innerHTML = message['data']['newShowStatus'];
+            document.getElementById('errorServerText').innerHTML = data['data']['newShowStatus'];
 
         } else {
             document.getElementById('preloaderBlock').style.opacity = 0;
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById('successBlock').style.display = 'block';
             }, 300);
 
-            document.getElementById('successServerText').innerHTML = message['data']['newShowStatus'];
+            document.getElementById('successServerText').innerHTML = data['data']['newShowStatus'];
         }
 
     };
@@ -231,9 +231,9 @@ document.addEventListener("DOMContentLoaded", () => {
         session.card = "";
     });
 
-    document.getElementById('cardInput').addEventListener('input', () => {
-        document.getElementById('cardInput').classList.remove('wrong');
-        let value = document.getElementById('cardInput').value;
+    document.getElementById('cardInput').addEventListener('input', function() {
+        this.classList.remove('wrong');
+        let value = this.value;
         if (!value[0]) {
             document.getElementById('cardImage').src = "";
         }
@@ -255,8 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    document.getElementById('cardInput').addEventListener('blur', () => {
-        let value = document.getElementById('cardInput').value;
+    document.getElementById('cardInput').addEventListener('blur', function() {
+        let value = this.value;
         value = value.replace(/\s/g, '');
         if (value.length == 16) {
             if(/^[0-9]+$/.test(value)){
@@ -265,29 +265,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     let beforeSubStr = value.substring(i-3,i + 1);
                     tmp += beforeSubStr + " ";
                 }
-                document.getElementById('cardInput').value = tmp;
+                this.value = tmp;
                 session.card = value;
                 if (session.purse) document.getElementById('inputNext').classList.add('active');
             } else {
-                document.getElementById('cardInput').classList.add('wrong');
+                this.classList.add('wrong');
                 document.getElementById('inputNext').classList.remove('active');
                 session.card = "";
             }
         } else {
-            document.getElementById('cardInput').classList.add('wrong');
+            this.classList.add('wrong');
             document.getElementById('inputNext').classList.remove('active');
             session.card = "";
         }
     });
 
-    document.getElementById('cardInput').addEventListener('focus', () => {
-        document.getElementById('cardInput').value = document.getElementById('cardInput').value.replace(/\s/g, '');
+    document.getElementById('cardInput').addEventListener('focus', function() {
+        this.value = this.value.replace(/\s/g, '');
     });
 
-    document.getElementById('purseInput').addEventListener('input', () => {
-        let value = document.getElementById('purseInput').value;
-        if (value) {
-            session.purse = value;
+    document.getElementById('purseInput').addEventListener('input', function() {
+        if (this.value) {
+            session.purse = this.value;
             if (session.card) document.getElementById('inputNext').classList.add('active');
         } else {
             document.getElementById('inputNext').classList.remove('active');
@@ -295,10 +294,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    document.getElementById('purseInput').addEventListener('blur', () => {
-        let value = document.getElementById('purseInput').value;
-        if (value) {
-            session.purse = value;
+    document.getElementById('purseInput').addEventListener('blur', function() {
+        if (this.value) {
+            session.purse = this.value;
             if (session.card) document.getElementById('inputNext').classList.add('active');
         } else {
             document.getElementById('inputNext').classList.remove('active');

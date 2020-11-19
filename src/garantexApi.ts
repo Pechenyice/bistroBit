@@ -1,10 +1,16 @@
-import * as dotenv from 'dotenv'
+import * as dotenv from 'dotenv';
 dotenv.config();
-import * as crypto from 'crypto'
-import fetch from 'node-fetch'
-import * as jwt from 'jsonwebtoken'
+import * as qs from 'querystring';
+import * as crypto from 'crypto';
+import fetch from 'node-fetch';
+import * as jwt from 'jsonwebtoken';
 
-type TMarketId = 'btcrub' | 'btcusd' | 'btcusdt' | 'btcdai' | 'dairub' | 'daiuah' | 'daiusd' | 'ethbtc' | 'ethdai' | 'ethrub' | 'ethusd' | 'ethusdt' | 'usdtdai' | 'usdtrub' | 'usdtusd';
+type TMarketId =
+    'btcrub' | 'btcusd' | 'btcusdt' |
+    'btcdai' | 'dairub' | 'daiuah' | 
+    'daiusd' | 'ethbtc' | 'ethdai' |
+    'ethrub' | 'ethusd' | 'ethusdt' |
+    'usdtdai' | 'usdtrub' | 'usdtusd';
 
 interface ITrade {
     id: string,
@@ -19,13 +25,49 @@ interface ITrade {
     fee_size: string,
     created_at: string,
     side: string
-}
+};
+
+interface IGateway {
+    id: number,
+    direction: string,
+    currency: 'rub',
+    title: string,
+    description: string,
+    instructions: string,
+    min_amount: string,
+    max_amount: string,
+    rounding: string,
+    fee: string,
+    fee_fixed: string,
+    fee_limit: string
+};
+
+interface IDepth {
+    price: string,
+    volume: string,
+    amount: string,
+    factor: string,
+    type: 'limit' | 'factor'
+};
+
+interface IDepositAddress {
+    id: number,
+    currency: 'btc', 'eth', 'usdt',
+    address: string
+};
+
+interface IDepositAddressDetails {
+    id: number,
+    blockchain: 'btc', 'ethereum',
+    address: string
+};
 
 export default class GarantexApi {
     /**
-     * API host address
+     * API host address - garantex.io
+     * If enableTestServer = true on constructor then host = stage.garantex.biz
      */
-    private host: string = 'stage.garantex.biz';
+    private host: string = 'garantex.io';
 
     /**
      * API UID
@@ -47,10 +89,13 @@ export default class GarantexApi {
      */
     JWT: string;
 
-    constructor(API_UID: string, credentials: {publicKey: string, privateKey: string}) {
+    constructor(API_UID: string, credentials: {publicKey: string, privateKey: string}, enableTestServer?: boolean) {
         this.publicKey = credentials.publicKey;
         this.privateKey = Buffer.from(credentials.privateKey, 'base64').toString('utf8');
         this.API_UID = API_UID;
+        if (enableTestServer) {
+            this.host = 'stage.garantex.biz';
+        }
     }
     
     /**
@@ -105,6 +150,9 @@ export default class GarantexApi {
         }
     }
 
+    /**
+     * Returns account-trades
+     */
     async trades(options: {
         market: TMarketId, 
         limit?: number, 
@@ -113,16 +161,95 @@ export default class GarantexApi {
         to?: number,
         order_by?: string
     }): Promise<ITrade[]> {
-        let data = Object.entries(options).map((pair) => `${pair[0]}=${pair[1]}`).join('&');
+        let data = qs.encode(options);
         let response = await fetch(`https://${this.host}/api/v2/trades?${data}`, {
-            method: 'GET',
+            method: 'GET'
         });
-        return response.json();
+        return await response.json();
     }
 
-    // async fetchExchangeRates(): Promise<{btc_rub: number, eth_rub: number, usdt_rub: number}> {
-    //     return null;
-    // }
-}
+    /**
+     * /depth API Endpoint.
+     * Returns market depth for selected market
+     */
+    async depth(options: {
+        market: TMarketId
+    }): Promise<{
+        timestamp: number,
+        asks: IDepth[],
+        bids: IDepth[]
+    }> {
+        let data = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/depth?${data}`, {
+            method: 'GET'
+        });
+        return await response.json();
+    }
 
+    /**
+     * /deposit_address?currency=cur API Endpoint.
+     * Returns actual deposit address to deposits for selected currency
+     */
+    async actualDepositAddress(options: {
+        currency: 'btc' | 'eth' | 'usdt'
+    }): Promise<IDepositAddress> {
+        let queryWithData = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/deposit_address?${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            }
+        });
+        return await response.json();
+    }
+
+    /**
+     * /depoist_address API Endpoint.
+     * Creates and returns new address to get deposits for selected currency
+     */
+    async additionalDepositAddress(options: {
+        currency: 'btc' | 'eth' | 'usdt'
+    }): Promise<IDepositAddress> {
+        let response = await fetch(`https://${this.host}/api/v2/deposit_address`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(options)
+        });
+        return await response.json();
+    }
+
+    async depositAddressDetails(options: {
+        id: number | string
+    }): Promise<IDepositAddressDetails> {
+        let queryWithData = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/deposit_address/details?${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            }
+        });
+        return await response.json();
+    }
+
+    /**
+     * /gateway_types API Endpoint.
+     * Returns deposit and withdraw ways
+     */
+    async gatewayTypes(options: {
+        currency: 'rub',
+        direction?: 'deposit' | 'withdraw'
+    }): Promise<IGateway[]> {
+        let queryWithData = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/gateway_types?${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            }
+        });
+        return await response.json();
+    }
+}
 
