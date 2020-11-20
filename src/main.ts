@@ -51,12 +51,6 @@ app.listen(80);
 
 const exchangeRatesWSServer = new ws.Server({noServer: true});
 
-async function wait(ms: number) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
 async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): Promise<number> {
     let depth = await garantexApi.depth({ market: market });
     if (!depth.bids) throw depth;
@@ -132,6 +126,8 @@ interface IExchageSessionData {
     card: string,
     depositAddressId: number,
     depositAddress: string,
+    depositAmount: string,
+    orderId: number,
     status: SessionStatus
     // status: 'waitingCurrency' | 'waitingRequisites' | 'checkingRequisites' | 'checkingBalance'
 }
@@ -179,11 +175,19 @@ function testCard(card: string): boolean {
     return true;
 }
 
-/* TODO: Remove this function used for test */
-async function delay(ms) {
+async function delay(ms: number) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
+}
+
+function dropRequisites(sessionData: IExchageSessionData) {
+    sessionData.address = null;
+    sessionData.card = null;
+    sessionData.depositAddressId = null;
+    sessionData.depositAddress = null;
+    sessionData.depositAmount = null;
+    sessionData.orderId = null;
 }
 
 exchangeProcessWSServer.on('connection', (socket, req) => {
@@ -194,6 +198,8 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         card: null,
         depositAddressId: null,
         depositAddress: null,
+        depositAmount: null,
+        orderId: null,
         status: SessionStatus.waitingCurrency
     });
 
@@ -253,30 +259,37 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 });
                 sessionData.card = parsedData.card;
                 sessionData.status = SessionStatus.serverWorking;
-
-                let depositAddress = await garantexApi.additionalDepositAddress({ currency: sessionData.currency });
-                if (!depositAddress.id) {
+                
+                let depositAddress;
+                try {
+                    depositAddress = await garantexApi.additionalDepositAddress({ currency: sessionData.currency });
+                } catch {}
+                if (!depositAddress || !depositAddress.id) {
                     failToSocket(socket, 'No id field in response from additionalDepositAddress', {
                         completed: true,
-                        newShowStatus: 'Произошла ошибка во время создания кошелька для приёма платежа'
+                        newShowStatus: 'Произошла ошибка (#1) во время создания кошелька для приёма платежа'
                     });
+                    sessionData.status = SessionStatus.failed;
+                    return;
                 } else {
                     sessionData.depositAddressId = depositAddress.id;
                     
                     /* 10 Attempts to get deposit address */
-                    for (let i = 0; i < 10; i++) {
-                        let { address } = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
-                        if (address) {
-                            sessionData.depositAddress = address;
-                            break;
-                        }
-                        await wait(1000);
+                    for (let attempt = 0; attempt < 10; attempt++) {
+                        try {
+                            let { address } = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
+                            if (address) {
+                                sessionData.depositAddress = address;
+                                break;
+                            }
+                        } catch {}
+                        await delay(2500);
                     }
 
                     if (!sessionData.depositAddress) {
                         failToSocket(socket, 'Failed to get deposit address', {
                             completed: true,
-                            newShowStatus: 'Произошла ошибка во время создания кошелька для приёма платежа'
+                            newShowStatus: 'Произошла ошибка (#2) во время создания кошелька для приёма платежа'
                         });
                     } else {
                         successToSocket(socket, {
@@ -284,6 +297,72 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                             newShowStatus: 'Ожидание платежа',
                             depositAddress: sessionData.depositAddress
                         });
+                        
+                        /* 60 Attempts with delay in 10 seconds to wait for user deposit */
+                        for (let attempt = 0; attempt < 60; attempt++) {
+                            try {
+                                let deposits = await garantexApi.deposits({
+                                    currency: sessionData.currency,
+                                    limit: 20
+                                });
+                                for (let deposit of deposits) {
+                                    if (deposit.address == sessionData.depositAddress) {
+                                        sessionData.depositAmount = deposit.amount;
+                                        break;
+                                    }
+                                }
+                                if (sessionData.depositAmount) break;
+                            } catch {}
+                            await delay(10000);
+                        }
+
+                        if (!sessionData.depositAmount) {
+                            failToSocket(socket, 'Did not get deposit in 10+ minutes', {
+                                completed: true,
+                                newShowStatus: 'Время ожидания перевода истекло'
+                            });
+                            sessionData.status = SessionStatus.failed;
+                            return;
+                        } else {
+                            
+                            /* Place an order for exchange currency */
+                            enum markets {
+                                btc = 'btcrub',
+                                eth = 'ethrub',
+                                usdt = 'usdtrub'
+                            };
+                            let market = markets[sessionData.currency];
+                            try {
+                                let order = await garantexApi.orders({
+                                    market: market,
+                                    volume: sessionData.depositAmount,
+                                    side: 'sell'
+                                });
+                                sessionData.orderId = order.id;
+                            } catch {}
+
+                            if (!sessionData.orderId) {
+                                failToSocket(socket, 'Error while placing exchange order', {
+                                    completed: true,
+                                    newShowStatus: 'Произошла ошибка (#3) во время обмена валюты'
+                                });
+                                sessionData.status = SessionStatus.failed;
+                                return;
+                            } else {
+                                successToSocket(socket, {
+                                    completed: false,
+                                    newShowStatus:
+                                        `Поступил платёж на сумму: ` +
+                                        `${sessionData.depositAmount} ${sessionData.currency.toUpperCase()}. ` +
+                                        `Ожидаем обмена валюты`
+                                });
+
+                                /* Waiting for exchange */
+                                for (let attempt = 0; attempt < 30; attempt++) {
+                                    /* TODO: Not implemented yet */
+                                }
+                            }
+                        }
                     }
                 }
                 // await delay(5000);
@@ -318,8 +397,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             if (sessionData.status != SessionStatus.failed)  {
                 goodbyeSocket(socket, 'Unexpected action (dropRequisites)');
             } else {
-                sessionData.address = null;
-                sessionData.card = null;
+                dropRequisites(sessionData);
                 sessionData.status = SessionStatus.waitingRequisites;
             }
         } else {

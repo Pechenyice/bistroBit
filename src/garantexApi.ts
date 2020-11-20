@@ -62,6 +62,51 @@ interface IDepositAddressDetails {
     address: string
 };
 
+interface IDepositInformation {
+    id: number,
+    currency: 'rub' | 'btc' | 'eth' | 'usdt',
+    type: 'fiat' | 'coin',
+    amount: string,
+    fee: string,
+    txid?: string,
+    block_number?: number,
+    confirmations?: number,
+    state: 'pending' | 'canceled' | 'submitted' | 'accepted' | 'rejected',
+    address: string,
+    created_at: string,
+    completed_at: string
+};
+
+interface IOrderOptions {
+    market: TMarketId,
+    volume: number | string,
+    side: 'buy' | 'sell',
+    ord_type?: 'default' | 'limit' | 'factor' | 'market',
+    fix_price?: number | string,
+    factor?: number | string
+};
+
+interface IOrder {
+    id: number,
+    market: TMarketId,
+    remaining_volume: string,
+    executed_volume: string,
+    volume: string,
+    side: string,
+    ord_type: string,
+    state: string,
+    factor: string,
+    fix_price: string,
+    funds_received: string,
+    funds_fee: string,
+    trades_count: number,
+    avg_price: number,
+    executed_amount: string,
+    quote_amount: string,
+    created_at: string,
+    updated_at: string
+};
+
 export default class GarantexApi {
     /**
      * API host address - garantex.io
@@ -221,6 +266,10 @@ export default class GarantexApi {
         return await response.json();
     }
 
+    /**
+     * /deposit_address/details API Endpoint.
+     * Returns information about specified deposit address
+     */
     async depositAddressDetails(options: {
         id: number | string
     }): Promise<IDepositAddressDetails> {
@@ -230,6 +279,48 @@ export default class GarantexApi {
             headers: {
                 'Authorization': `Bearer ${this.JWT}`
             }
+        });
+        return await response.json();
+    }
+
+    /**
+     * /deposits API Endpoint.
+     * Returns deposits history
+     */
+    async deposits(options?: {
+        currency?: 'rub' | 'btc' | 'eth' | 'usdt',
+        limit?: number,
+        state?: 'pending' | 'canceled' | 'submitted' | 'accepted' | 'rejected'
+    }): Promise<IDepositInformation[]> {
+        let queryWithData = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/deposits?${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            }
+        });
+        return await response.json();
+    }
+
+    /**
+     * /orders API Endpoint.
+     * Place an order to financial exchange
+     */
+    async orders(options: {
+        market: TMarketId,
+        volume: number | string,
+        side: 'buy' | 'sell',
+        ord_type?: 'default' | 'limit' | 'factor' | 'market',
+        fix_price?: number | string,
+        factor?: number | string
+    }): Promise<IOrder> {
+        let response = await fetch(`https://${this.host}/api/v2/orders`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(options)
         });
         return await response.json();
     }
