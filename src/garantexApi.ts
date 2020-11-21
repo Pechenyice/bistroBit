@@ -77,15 +77,6 @@ interface IDepositInformation {
     completed_at: string
 };
 
-interface IOrderOptions {
-    market: TMarketId,
-    volume: number | string,
-    side: 'buy' | 'sell',
-    ord_type?: 'default' | 'limit' | 'factor' | 'market',
-    fix_price?: number | string,
-    factor?: number | string
-};
-
 interface IOrder {
     id: number,
     market: TMarketId,
@@ -306,7 +297,7 @@ export default class GarantexApi {
      * /orders API Endpoint.
      * Place an order to financial exchange
      */
-    async orders(options: {
+    async newOrder(options: {
         market: TMarketId,
         volume: number | string,
         side: 'buy' | 'sell',
@@ -321,6 +312,19 @@ export default class GarantexApi {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(options)
+        });
+        return await response.json();
+    }
+
+    async getOrder(options: {
+        id: number | string
+    }): Promise<IOrder> {
+        let queryWithData = qs.encode(options);
+        let response = await fetch(`https://${this.host}/api/v2/orders${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`,
+            }
         });
         return await response.json();
     }

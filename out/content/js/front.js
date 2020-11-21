@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     ws.onmessage = message => {
         let data = JSON.parse(message.data);
-        console.log(data);
+        console.table(data);
         if (data['errorMessage']) {
             rates[0].innerHTML = "X";
             rates[1].innerHTML = "X";

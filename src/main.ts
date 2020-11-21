@@ -72,44 +72,52 @@ async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): P
 /**
  * Sending updated information about exchange rates to websocket clients
  */
-(async function updateExchangeRateWorker() {
-    /* If no clients on websocket server - don't work */
-    if (exchangeRatesWSServer.clients.size) {
-        let rates;
-        let message;
-        /* Placed here this console.log because once I got error
-         * that crashed process while request to /depth api endpoint
-         */
-        console.log('Trying to get rates');
-        try {
-            let btcrubExchangeRate = calculateExchangeRate('btcrub');
-            let ethrubExchangeRate = calculateExchangeRate('ethrub');
-            let usdtrubExchangeRate = calculateExchangeRate('usdtrub');
-            rates = {
-                btc_rub: await btcrubExchangeRate,
-                eth_rub: await ethrubExchangeRate,
-                usdt_rub: await usdtrubExchangeRate
-            };
-        } catch {}
+let updateExchangeRateWorker = (() => {
+    async function updateExchangeRateWorker() {
+        /* If no clients on websocket server - don't work */
+        if (exchangeRatesWSServer.clients.size) {
+            let rates;
+            let message;
+            /* Placed here this console.log because once I got error
+             * that crashed process while request to /depth api endpoint
+             */
+            console.log('Trying to get rates');
+            try {
+                let btcrubExchangeRate = calculateExchangeRate('btcrub');
+                let ethrubExchangeRate = calculateExchangeRate('ethrub');
+                let usdtrubExchangeRate = calculateExchangeRate('usdtrub');
+                rates = {
+                    btc_rub: await btcrubExchangeRate,
+                    eth_rub: await ethrubExchangeRate,
+                    usdt_rub: await usdtrubExchangeRate
+                };
+            } catch {}
 
-        if (rates) {
-            message = JSON.stringify({rates: rates});
-        } else {
-            message = JSON.stringify({
-                errorMessage: 'Can\'t resolve exchange rates from garantex API'
-            });
+            if (rates) {
+                message = JSON.stringify({rates: rates});
+            } else {
+                message = JSON.stringify({
+                    errorMessage: 'Can\'t resolve exchange rates from garantex API'
+                });
+            }
+
+            for (let client of exchangeRatesWSServer.clients) {
+                client.send(message);
+            }
         }
 
-        for (let client of exchangeRatesWSServer.clients) {
-            client.send(message);
-        }
+        /* Repeat sending data after specified time */
+        setTimeout(updateExchangeRateWorker, parseInt(process.env.UPDATE_EXCHANGE_RATES_INTERVAL) * 1000 || 10000);
     }
-
-    /* Repeat sending data after specified time */
-    setTimeout(updateExchangeRateWorker, parseInt(process.env.UPDATE_EXCHANGE_RATES_INTERVAL) * 1000 || 10000);
+    updateExchangeRateWorker();
+    return updateExchangeRateWorker;
 })();
 
 const exchangeProcessWSServer = new ws.Server({noServer: true});
+
+exchangeProcessWSServer.on('connection', () => {
+    updateExchangeRateWorker();
+});
 
 enum SessionStatus {
     waitingCurrency,
@@ -273,13 +281,16 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     return;
                 } else {
                     sessionData.depositAddressId = depositAddress.id;
+                    console.log(sessionData);
                     
                     /* 10 Attempts to get deposit address */
                     for (let attempt = 0; attempt < 10; attempt++) {
+                        console.log('Attempt to get deposit address #' + attempt);
                         try {
-                            let { address } = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
-                            if (address) {
-                                sessionData.depositAddress = address;
+                            let depositAddressDetails = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
+                            if (depositAddressDetails && depositAddressDetails.address) {
+                                sessionData.depositAddress = depositAddressDetails.address;
+                                console.log(sessionData);
                                 break;
                             }
                         } catch {}
@@ -287,10 +298,13 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     }
 
                     if (!sessionData.depositAddress) {
+                        console.log('Failed to get deposit address');
                         failToSocket(socket, 'Failed to get deposit address', {
                             completed: true,
                             newShowStatus: 'Произошла ошибка (#2) во время создания кошелька для приёма платежа'
                         });
+                        sessionData.status = SessionStatus.failed;
+                        return;
                     } else {
                         successToSocket(socket, {
                             completed: false,
@@ -300,6 +314,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                         
                         /* 60 Attempts with delay in 10 seconds to wait for user deposit */
                         for (let attempt = 0; attempt < 60; attempt++) {
+                            console.log('Waiting user deposit #' + attempt);
                             try {
                                 let deposits = await garantexApi.deposits({
                                     currency: sessionData.currency,
@@ -308,6 +323,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                 for (let deposit of deposits) {
                                     if (deposit.address == sessionData.depositAddress) {
                                         sessionData.depositAmount = deposit.amount;
+                                        console.log(sessionData);
                                         break;
                                     }
                                 }
@@ -317,6 +333,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                         }
 
                         if (!sessionData.depositAmount) {
+                            console.log('Did not get deposit in 10+ minutes');
                             failToSocket(socket, 'Did not get deposit in 10+ minutes', {
                                 completed: true,
                                 newShowStatus: 'Время ожидания перевода истекло'
@@ -324,7 +341,6 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                             sessionData.status = SessionStatus.failed;
                             return;
                         } else {
-                            
                             /* Place an order for exchange currency */
                             enum markets {
                                 btc = 'btcrub',
@@ -333,15 +349,17 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                             };
                             let market = markets[sessionData.currency];
                             try {
-                                let order = await garantexApi.orders({
+                                let order = await garantexApi.newOrder({
                                     market: market,
                                     volume: sessionData.depositAmount,
                                     side: 'sell'
                                 });
-                                sessionData.orderId = order.id;
+                                if (order && order.id) sessionData.orderId = order.id;
+                                console.log(sessionData);
                             } catch {}
 
                             if (!sessionData.orderId) {
+                                console.log('Error while placing exchange order');
                                 failToSocket(socket, 'Error while placing exchange order', {
                                     completed: true,
                                     newShowStatus: 'Произошла ошибка (#3) во время обмена валюты'
@@ -358,8 +376,21 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                 });
 
                                 /* Waiting for exchange */
+                                let exchanged = false;
                                 for (let attempt = 0; attempt < 30; attempt++) {
                                     /* TODO: Not implemented yet */
+                                    console.log('Waiting for exchange #' + attempt);
+                                    try {
+                                        /* Didn't totally understand, how to check if order competed */
+                                        let orderInfo = await garantexApi.getOrder({
+                                            id: sessionData.orderId
+                                        });
+                                        if (orderInfo && orderInfo['?']) {
+                                            exchanged = true;
+                                            break;
+                                        }
+                                    } catch {}
+                                    await delay(5000);
                                 }
                             }
                         }
