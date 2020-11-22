@@ -16,7 +16,7 @@ function convert(value): string {
 
 export function addSessionDataState(db: sqlConnection, data) {
     return new Promise((resolve, reject) => {
-        let query = 'INERT INTO `sessionStates` VALUES (now(), ?, ?, ?, ?, ?, ?, ?, ?)';
+        let query = 'INERT INTO `sessionStates` VALUES (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?)';
         db.query(query, [
             convert(data.id),
             convert(data.currency),
