@@ -300,7 +300,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
             } else {
                 successToSocket(socket, {
                     completed: false,
-                    newShowStatus: 'Создание кошелька для приёма платежа',
+                    newShowStatus: 'Создаётся кошелёк для приёма платежа',
                 });
                 sessionData.card = parsedData.card;
                 sessionData.status = SessionStatus.serverWorking;
