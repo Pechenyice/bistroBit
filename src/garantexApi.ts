@@ -83,9 +83,9 @@ interface IOrder {
     remaining_volume: string,
     executed_volume: string,
     volume: string,
-    side: string,
-    ord_type: string,
-    state: string,
+    side: 'ask' | 'bid',
+    ord_type: 'default' | 'market' | 'factor' | 'limit',
+    state: 'wait' | 'done' | 'cancel',
     factor: string,
     fix_price: string,
     funds_received: string,
@@ -96,6 +96,21 @@ interface IOrder {
     quote_amount: string,
     created_at: string,
     updated_at: string
+};
+
+interface IWithdraw {
+    id: number,
+    currency: 'btc' | 'eth' | 'usdt',
+    type: 'coin' | 'fiat',
+    amount: string,
+    fee: string,
+    rid: string,
+    state: 'submitted' | 'succeed',
+    txid: string,
+    block_number: number,
+    confirmations: number,
+    created_at: string,
+    completed_at: string
 };
 
 export default class GarantexApi {
@@ -135,6 +150,7 @@ export default class GarantexApi {
     }
     
     /**
+     * POST /sessions/generate_jwt API Endpoint.
      * Method used to get new JWT, but not update it in API instance
      */
     async generateJwt() {
@@ -187,6 +203,7 @@ export default class GarantexApi {
     }
 
     /**
+     * GET /trades API Endpoint.
      * Returns account-trades
      */
     async trades(options: {
@@ -205,7 +222,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /depth API Endpoint.
+     * GET /depth API Endpoint.
      * Returns market depth for selected market
      */
     async depth(options: {
@@ -223,7 +240,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /deposit_address?currency=cur API Endpoint.
+     * GET /deposit_address?currency=cur API Endpoint.
      * Returns actual deposit address to deposits for selected currency
      */
     async actualDepositAddress(options: {
@@ -240,7 +257,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /depoist_address API Endpoint.
+     * POST /depoist_address API Endpoint.
      * Creates and returns new address to get deposits for selected currency
      */
     async additionalDepositAddress(options: {
@@ -258,7 +275,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /deposit_address/details API Endpoint.
+     * GET /deposit_address/details API Endpoint.
      * Returns information about specified deposit address
      */
     async depositAddressDetails(options: {
@@ -275,7 +292,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /deposits API Endpoint.
+     * GET /deposits API Endpoint.
      * Returns deposits history
      */
     async deposits(options?: {
@@ -294,7 +311,7 @@ export default class GarantexApi {
     }
 
     /**
-     * /orders API Endpoint.
+     * POST /orders API Endpoint.
      * Place an order to financial exchange
      */
     async newOrder(options: {
@@ -316,6 +333,10 @@ export default class GarantexApi {
         return await response.json();
     }
 
+    /**
+     * GET /orders API Endpoint
+     * Returns order information
+     */
     async getOrder(options: {
         id: number | string
     }): Promise<IOrder> {
@@ -330,7 +351,47 @@ export default class GarantexApi {
     }
 
     /**
-     * /gateway_types API Endpoint.
+     * POST /withdraws/create API Endpoint.
+     * Creates withdraw ticket and returns information about it
+     */
+    async createWithdraw(options: {
+        currency: 'rub' | 'btc' | 'eth' | 'usdt',
+        amount: string | number,
+        rid: string,
+        gateway_type_id?: string | number,
+        data?: string
+    }): Promise<any> {
+        let response = await fetch(`https://${this.host}/api/v2/withdraws/create`, {
+            method: 'POST', 
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`,
+            },
+            body: JSON.stringify(options)
+        });
+        return await response.json();
+    }
+
+    /**
+     * GET /wtihdraws API Endpoint.
+     * Returns list with withdraws information
+     */
+    async withdraws(options?: {
+        currency?: 'rub' | 'btc' | 'eth' | 'usdt',
+        page?: number,
+        limit?: number
+    }): Promise<IWithdraw[]> {
+        let queryWithData = qs.encode(options);
+        let response = fetch(`https://${this.host}/api/v2/withdraws?${queryWithData}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            }
+        });
+        return response.json();
+    }
+
+    /**
+     * GET /gateway_types API Endpoint.
      * Returns deposit and withdraw ways
      */
     async gatewayTypes(options: {

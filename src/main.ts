@@ -1,14 +1,17 @@
-import * as dotenv from 'dotenv'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as http from 'http'
-import * as https from 'https'
-import * as express from 'express'
-import * as ws from 'ws'
+import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as http from 'http';
+import * as https from 'https';
+import * as crypto from 'crypto';
+import * as mysql from 'mysql2';
+import * as express from 'express';
+import * as ws from 'ws';
 
-import apiRouter from './apiRouter'
-import defaultRouter from './defaultRouter'
-import GarantexApi from './garantexApi'
+import apiRouter from './apiRouter';
+import defaultRouter from './defaultRouter';
+import GarantexApi from './garantexApi';
+import * as database from './database';
 
 /* Getting environment variables from .env file */
 dotenv.config();
@@ -17,6 +20,16 @@ dotenv.config();
  * to update garantex api jwt token with "await" statement
  */
 async function main() {
+
+const db = mysql.createConnection({
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
+});
+
+/* TODO: Implement function database.init(db) */
+// database.init(db);
 
 const garantexApi = new GarantexApi(process.env.GARANTEX_API_UID, {
     publicKey: process.env.GARANTEX_PUBLIC_KEY,
@@ -124,10 +137,12 @@ enum SessionStatus {
     waitingRequisites,
     checkingBalance,
     serverWorking,
-    failed
+    failed,
+    banned
 };
 
 interface IExchageSessionData {
+    id: string,
     lastAction: number,
     currency: 'btc' | 'eth' | 'usdt',
     address: string,
@@ -136,9 +151,11 @@ interface IExchageSessionData {
     depositAddress: string,
     depositAmount: string,
     orderId: number,
+    exchanged: boolean,
+    fundsReceived: string,
     status: SessionStatus
-    // status: 'waitingCurrency' | 'waitingRequisites' | 'checkingRequisites' | 'checkingBalance'
-}
+};
+
 let exchangeSessions: Map<ws, IExchageSessionData> = new Map();
 
 type anyObject = {
@@ -196,10 +213,13 @@ function dropRequisites(sessionData: IExchageSessionData) {
     sessionData.depositAddress = null;
     sessionData.depositAmount = null;
     sessionData.orderId = null;
+    sessionData.exchanged = false;
+    sessionData.fundsReceived = null;
 }
 
 exchangeProcessWSServer.on('connection', (socket, req) => {
-    exchangeSessions.set(socket, {
+    let sessionData = {
+        id: crypto.randomBytes(+process.env.SESSION_ID_BYTES_LENGTH).toString('hex').toUpperCase(),
         lastAction: Date.now(),
         currency: null,
         address: null,
@@ -208,8 +228,12 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         depositAddress: null,
         depositAmount: null,
         orderId: null,
+        exchanged: false,
+        fundsReceived: null,
         status: SessionStatus.waitingCurrency
-    });
+    };
+    exchangeSessions.set(socket, sessionData);
+    database.addSessionDataState(db, sessionData);
 
     socket.on('message', async (data) => {
         let parsedData: {
@@ -229,60 +253,76 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         console.log(parsedData);
         if (!parsedData.action) {
             goodbyeSocket(socket, 'No "action" property in recieved data');
+            sessionData.status = SessionStatus.banned;
+            database.addSessionDataState(db, sessionData);
         } else if (parsedData.action == 'setCurrency') {
             let allowedCurrencies = ['btc', 'eth', 'usdt'];
             if (sessionData.status != SessionStatus.waitingCurrency) {
                 goodbyeSocket(socket, 'Unexpected action (setCurrency)');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else if (!parsedData.currency) {
                 goodbyeSocket(socket, 'No "currency" property on "setCurrency" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else if (!allowedCurrencies.includes(parsedData.currency)) {
                 goodbyeSocket(socket, 'Not allowed currency on "setCurrency" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else {
                 sessionData.currency = parsedData.currency;
                 sessionData.status = SessionStatus.waitingRequisites;
+                database.addSessionDataState(db, sessionData);
             }
         } else if (parsedData.action == 'dropCurrency') {
             if (sessionData.status > SessionStatus.waitingRequisites) {
                 goodbyeSocket(socket, 'Unexpected action (dropCurrency)');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else {
                 sessionData.currency = null;
                 sessionData.status = SessionStatus.waitingCurrency;
+                database.addSessionDataState(db, sessionData);
             }
         } else if (parsedData.action == 'setRequisites') {
             if (sessionData.status != SessionStatus.waitingRequisites) {
                 goodbyeSocket(socket, 'Unexpected action (setRequisites)');
-            // } else if (!parsedData.address) {
-            //     goodbyeSocket(socket, 'No "address" propery on "setRequisites" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else if (!parsedData.card) {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
-            // } else if (!testAddress(parsedData.currency, parsedData.address)) {
-            //     goodbyeSocket(socket, 'Incorrect "address" on "setRequisites" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else if (!testCard(parsedData.card)) {
                 goodbyeSocket(socket, 'Incorrect "card" on "setRequisites" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
             } else {
-                // sessionData.address = parsedData.address;
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus: 'Создание кошелька для приёма платежа',
                 });
                 sessionData.card = parsedData.card;
                 sessionData.status = SessionStatus.serverWorking;
+                database.addSessionDataState(db, sessionData);
                 
-                let depositAddress;
                 try {
-                    depositAddress = await garantexApi.additionalDepositAddress({ currency: sessionData.currency });
+                    let depositAddress = await garantexApi.additionalDepositAddress({ currency: sessionData.currency });
+                    if (depositAddress && depositAddress.id) sessionData.depositAddressId = depositAddress.id;
                 } catch {}
-                if (!depositAddress || !depositAddress.id) {
+
+                if (!sessionData.depositAddressId) {
+                    console.log('<ERROR> No id field in resonse from additionalDepositAddress');
                     failToSocket(socket, 'No id field in response from additionalDepositAddress', {
                         completed: true,
                         newShowStatus: 'Произошла ошибка (#1) во время создания кошелька для приёма платежа'
                     });
                     sessionData.status = SessionStatus.failed;
+                    database.addSessionDataState(db, sessionData);
                     return;
                 } else {
-                    sessionData.depositAddressId = depositAddress.id;
-                    console.log(sessionData);
-                    
+                    database.addSessionDataState(db, sessionData);
+
                     /* 10 Attempts to get deposit address */
                     for (let attempt = 0; attempt < 10; attempt++) {
                         console.log('Attempt to get deposit address #' + attempt);
@@ -290,7 +330,6 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                             let depositAddressDetails = await garantexApi.depositAddressDetails({ id: sessionData.depositAddressId });
                             if (depositAddressDetails && depositAddressDetails.address) {
                                 sessionData.depositAddress = depositAddressDetails.address;
-                                console.log(sessionData);
                                 break;
                             }
                         } catch {}
@@ -298,14 +337,17 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     }
 
                     if (!sessionData.depositAddress) {
-                        console.log('Failed to get deposit address');
+                        console.log('<ERROR> Failed to get deposit address');
                         failToSocket(socket, 'Failed to get deposit address', {
                             completed: true,
                             newShowStatus: 'Произошла ошибка (#2) во время создания кошелька для приёма платежа'
                         });
                         sessionData.status = SessionStatus.failed;
+                        database.addSessionDataState(db, sessionData);
                         return;
                     } else {
+                        database.addSessionDataState(db, sessionData);
+
                         successToSocket(socket, {
                             completed: false,
                             newShowStatus: 'Ожидание платежа',
@@ -322,7 +364,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                 });
                                 for (let deposit of deposits) {
                                     if (deposit.address == sessionData.depositAddress) {
-                                        sessionData.depositAmount = deposit.amount;
+                                        sessionData.depositAmount = deposit.amount || null;
                                         console.log(sessionData);
                                         break;
                                     }
@@ -339,8 +381,11 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                 newShowStatus: 'Время ожидания перевода истекло'
                             });
                             sessionData.status = SessionStatus.failed;
+                            database.addSessionDataState(db, sessionData);
                             return;
                         } else {
+                            database.addSessionDataState(db, sessionData);
+
                             /* Place an order for exchange currency */
                             enum markets {
                                 btc = 'btcrub',
@@ -365,8 +410,11 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                     newShowStatus: 'Произошла ошибка (#3) во время обмена валюты'
                                 });
                                 sessionData.status = SessionStatus.failed;
+                                database.addSessionDataState(db, sessionData);
                                 return;
                             } else {
+                                database.addSessionDataState(db, sessionData);
+
                                 successToSocket(socket, {
                                     completed: false,
                                     newShowStatus:
@@ -376,53 +424,47 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                                 });
 
                                 /* Waiting for exchange */
-                                let exchanged = false;
+                                let orderInfo;
                                 for (let attempt = 0; attempt < 30; attempt++) {
-                                    /* TODO: Not implemented yet */
                                     console.log('Waiting for exchange #' + attempt);
                                     try {
-                                        /* Didn't totally understand, how to check if order competed */
-                                        let orderInfo = await garantexApi.getOrder({
+                                        orderInfo = await garantexApi.getOrder({
                                             id: sessionData.orderId
                                         });
-                                        if (orderInfo && orderInfo['?']) {
-                                            exchanged = true;
+                                        if (orderInfo && orderInfo.state == 'done') {
+                                            sessionData.exchanged = true;
+                                            sessionData.fundsReceived = orderInfo.funds_received;
                                             break;
                                         }
                                     } catch {}
-                                    await delay(5000);
+                                    await delay(7000);
+                                }
+
+                                if (!sessionData.exchanged || !sessionData.fundsReceived) {
+                                    console.log('Not exchanged');
+                                    failToSocket(socket, 'Not exchanged', {
+                                        completed: true,
+                                        newShowStatus: 'Не удалось совершить обмен'
+                                    });
+                                    sessionData.status = SessionStatus.failed;
+                                    database.addSessionDataState(db, sessionData);
+                                } else {
+                                    database.addSessionDataState(db, sessionData);
+                                    
+                                    try {
+                                        let withdrawData = await garantexApi.createWithdraw({
+                                            currency: 'rub',
+                                            amount: sessionData.fundsReceived,
+                                            rid: sessionData.card,
+                                            gateway_type_id: 0
+                                        });
+                                    } catch {}
+
                                 }
                             }
                         }
                     }
                 }
-                // await delay(5000);
-                // let sum = Math.random().toFixed(6);
-                // let course = 990854.13;
-                // successToSocket(socket, {
-                //     completed: false,
-                //     newShowStatus: 'Поступил платёж на ' + sum + ' ' + sessionData.currency.toUpperCase()
-                // });
-                // await delay(3000);
-                // successToSocket(socket, {
-                //     completed: false,
-                //     newShowStatus: 'Произошёл обмен по курсу 1 ' + sessionData.currency.toUpperCase() + ' = 990845.13 р.'
-                // });
-                // await delay(3000);
-                // if (sessionData.card[15] != '4') {
-                //     successToSocket(socket, {
-                //         completed: true,
-                //         newShowStatus: 'Перевод на карту успешно выполнен. ' + sum + sessionData.currency.toUpperCase() + ' = ' + (parseFloat(sum) * course).toFixed(6) + ' р.'
-                //     });
-                //     exchangeSessions.delete(socket);
-                //     socket.terminate();
-                // } else {
-                //     failToSocket(socket, 'Error during transaction', {
-                //         completed: true,
-                //         newShowStatus: 'Ошибка при совершении перевода'
-                //     });
-                //     sessionData.status = SessionStatus.failed;
-                // }
             }
         } else if (parsedData.action == 'dropRequisites') {
             if (sessionData.status != SessionStatus.failed)  {
