@@ -331,13 +331,18 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     currency: 'rub',
                     direction: 'withdraw'
                 });
+                const getGatewayTypeFee = function(gatewayTypeId) {
+                    let gatewayType = gatewayTypes.find((gt) => gt.id == gatewayTypeId);
+                    if (gatewayType) return gatewayType.fee;
+                    return null;
+                };
                 let availableWithdrawMethodsFees = {
-                    sber: gatewayTypes.find((gt) => gt.id == 8),
-                    tinkoff: gatewayTypes.find((gt) => gt.id == 16),
-                    anyCard: gatewayTypes.find((gt) => gt.id == 37),
-                    cash: process.env.CASH_WITHDRAW_AVAILABLE ? 0 : 1
+                    sber: getGatewayTypeFee(8),
+                    tinkoff: getGatewayTypeFee(16),
+                    anyCard: getGatewayTypeFee(37),
+                    cash: process.env.CASH_WITHDRAW_AVAILABLE ? '0' : null
                 }
-                if (!availableWithdrawMethodsFees[parsedData.withdrawMethod]) {
+                if (typeof(availableWithdrawMethodsFees[parsedData.withdrawMethod]) != 'string') {
                     console.log('<ERROR> This withdrawMethod is not available');
                     failToSocket(socket, 'This withdrawMethod is not available', {
                         completed: true,
@@ -355,7 +360,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 sessionData.card = parsedData.card;
                 sessionData.withdrawMethod = parsedData.withdrawMethod;
                 // Fee in gateway object looks like 0.02 instead of percents, so I multiplied it by 100
-                sessionData.withdrawMethodFee = +availableWithdrawMethods[parsedData.withdrawMethod].fee * 100; 
+                sessionData.withdrawMethodFee = +availableWithdrawMethodsFees[parsedData.withdrawMethod] * 100; 
                 sessionData.status = SessionStatus.serverWorking;
                 database.addSessionDataState(db, sessionData);
                 
@@ -508,15 +513,28 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     return;
                 }
 
-                /* TODO: Implement course calculations with withdraw fee*/
-                successToSocket(socket, {
-                    completed: false,
-                    newShowStatus:
+                const roundToTen = (value: number) => Math.floor(value / 10) * 10;
+                let newShowStatus: string;
+                let course = roundToTen(+sessionData.fundsReceived) / +sessionData.depositAmount;
+                course = course / 100 * (100 - sessionData.withdrawMethodFee);
+                if (sessionData.withdrawMethod == 'cash') {
+                    newShowStatus =
                         `Произошёл обмен по курсу ` +
                         `1 ${sessionData.currency.toUpperCase()} = ${+sessionData.fundsReceived / +sessionData.depositAmount} р.`
+                } else {
+                    newShowStatus =
+                        `Произошёл обмен по курсу ` +
+                        `1 ${sessionData.currency.toUpperCase()} = ${+sessionData.fundsReceived / +sessionData.depositAmount} р.`
+                }
+
+                successToSocket(socket, {
+                    completed: false,
+                    newShowStatus: newShowStatus
                 });
                 database.addSessionDataState(db, sessionData);
                 
+                if (sessionData.withdrawMethod == 'cash') return;
+
                 try {
                     let withdrawData = await garantexApi.createWithdraw({
                         currency: 'rub',
