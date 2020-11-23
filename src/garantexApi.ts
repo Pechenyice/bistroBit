@@ -206,7 +206,7 @@ export default class GarantexApi {
      * GET /trades API Endpoint.
      * Returns account-trades
      */
-    async trades(options: {
+    async getTrades(options: {
         market: TMarketId, 
         limit?: number, 
         timestamp?: number,
@@ -225,7 +225,7 @@ export default class GarantexApi {
      * GET /depth API Endpoint.
      * Returns market depth for selected market
      */
-    async depth(options: {
+    async getDepth(options: {
         market: TMarketId
     }): Promise<{
         timestamp: number,
@@ -243,7 +243,7 @@ export default class GarantexApi {
      * GET /deposit_address?currency=cur API Endpoint.
      * Returns actual deposit address to deposits for selected currency
      */
-    async actualDepositAddress(options: {
+    async getActualDepositAddress(options: {
         currency: 'btc' | 'eth' | 'usdt'
     }): Promise<IDepositAddress> {
         let queryWithData = qs.encode(options);
@@ -260,7 +260,7 @@ export default class GarantexApi {
      * POST /depoist_address API Endpoint.
      * Creates and returns new address to get deposits for selected currency
      */
-    async additionalDepositAddress(options: {
+    async createAdditionalDepositAddress(options: {
         currency: 'btc' | 'eth' | 'usdt'
     }): Promise<IDepositAddress> {
         let response = await fetch(`https://${this.host}/api/v2/deposit_address`, {
@@ -278,7 +278,7 @@ export default class GarantexApi {
      * GET /deposit_address/details API Endpoint.
      * Returns information about specified deposit address
      */
-    async depositAddressDetails(options: {
+    async getDepositAddressDetails(options: {
         id: number | string
     }): Promise<IDepositAddressDetails> {
         let queryWithData = qs.encode(options);
@@ -295,7 +295,7 @@ export default class GarantexApi {
      * GET /deposits API Endpoint.
      * Returns deposits history
      */
-    async deposits(options?: {
+    async getDeposits(options?: {
         currency?: 'rub' | 'btc' | 'eth' | 'usdt',
         limit?: number,
         state?: 'pending' | 'canceled' | 'submitted' | 'accepted' | 'rejected'
@@ -314,7 +314,7 @@ export default class GarantexApi {
      * POST /orders API Endpoint.
      * Place an order to financial exchange
      */
-    async newOrder(options: {
+    async createNewOrder(options: {
         market: TMarketId,
         volume: number | string,
         side: 'buy' | 'sell',
@@ -360,7 +360,7 @@ export default class GarantexApi {
         rid: string,
         gateway_type_id?: string | number,
         data?: string
-    }): Promise<any> {
+    }): Promise<IWithdraw> {
         let response = await fetch(`https://${this.host}/api/v2/withdraws/create`, {
             method: 'POST', 
             headers: {
@@ -375,7 +375,7 @@ export default class GarantexApi {
      * GET /wtihdraws API Endpoint.
      * Returns list with withdraws information
      */
-    async withdraws(options?: {
+    async getWithdraws(options?: {
         currency?: 'rub' | 'btc' | 'eth' | 'usdt',
         page?: number,
         limit?: number
@@ -394,7 +394,7 @@ export default class GarantexApi {
      * GET /gateway_types API Endpoint.
      * Returns deposit and withdraw ways
      */
-    async gatewayTypes(options: {
+    async getGatewayTypes(options: {
         currency: 'rub',
         direction?: 'deposit' | 'withdraw'
     }): Promise<IGateway[]> {
