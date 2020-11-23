@@ -5,7 +5,9 @@
     <link href="https://use.fontawesome.com/releases/v5.14.0/css/all.css" rel="stylesheet">
     <link rel="stylesheet" href="css/all.css">
     <link rel="stylesheet" href="css/switch.css">
+    <link rel="stylesheet" href="css/radio.css">
     <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="js/qrcode.js"></script>
     <title>БыстроБит</title>
     <script src="js/front.js"></script>
 </head>
@@ -15,19 +17,20 @@
             <div id="navLogos">
                 <div class="navLogo">
                     <img src="assets/logo/bitcoin.png" width="20px" height="20px" />
-                    <p class="navLogoRates">0.00</p>
+                    <p class="navLogoRates">?</p>
                 </div>
                 <div class="navLogo">
                     <img src="assets/logo/etherium.png" width="20px" height="20px" />
-                    <p class="navLogoRates">0.00</p>
+                    <p class="navLogoRates">?</p>
                 </div>
                 <div class="navLogo">
                     <img src="assets/logo/tether.png" width="20px" height="20px" />
-                    <p class="navLogoRates">0.00</p>
+                    <p class="navLogoRates">?</p>
                 </div>
             </div>
     </div>
     <div id="telHelp"><a href="tg://resolve?domain=don2quixote"><i class="fab fa-telegram"></i></a></div>
+    <div id="sessionIDBlock">ID Сессии:<span>?</span></div>
     <div id="theme">
         <label class="switch">
             <input type="checkbox" id="themeSwap">
@@ -64,7 +67,7 @@
 
             <div class="contentBlock" id="inputBlock">
                 <div id="inputBack"><i class="fas fa-arrow-left"></i></div>
-                <div class="contentBlockName">Введите реквизиты</div>
+                <div class="contentBlockName">Укажите реквизиты</div>
 
                 <div id="contentInputBlockMain">
 
@@ -72,9 +75,30 @@
                         <div class="question"><i class="far fa-question-circle"></i>
                             <div class="answer"></div>
                         </div>
-                        <p class="inputLabel">Адрес кошелька:</p>
-                        <input type="text" name="purse" class="inputInput" id="purseInput" placeholder="3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng"/>
-                        <img src="assets/logo/bitcoin.png" class="inputImage" id="purseImage" />
+                        <p class="inputLabel">Способ вывода:</p>
+                        <!-- <input type="text" name="purse" class="inputInput" id="purseInput" placeholder="3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng"/>
+                        <img src="assets/logo/bitcoin.png" class="inputImage" id="purseImage" /> -->
+                        <div id="radioBlock">
+                            <label class="container fakeContainer">Сбербанк
+                                <input type="radio" checked="checked" disabled name="paymentType" class="withdrawMethods" value="sber">
+                                <span class="checkmark"></span>
+                            </label>
+                              
+                            <label class="container fakeContainer">Тинькофф
+                                <input type="radio" name="paymentType" disabled class="withdrawMethods" value="tinkoff">
+                                <span class="checkmark"></span>
+                            </label>
+                              
+                            <label class="container fakeContainer">Любая карта
+                                <input type="radio" name="paymentType" disabled class="withdrawMethods" value="anyCard">
+                                <span class="checkmark"></span>
+                            </label>
+                              
+                            <label class="container fakeContainer">Наличные
+                                <input type="radio" name="paymentType" disabled class="withdrawMethods" value="cash">
+                                <span class="checkmark"></span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="contentInputBlock">
@@ -93,13 +117,14 @@
 
             <div class="contentBlock" id="preloaderBlock">
 
-                <div class="contentPreloaderBlockMain">
+                <div class="contentPreloaderBlockMain" id="qrMainBlock">
                     <div class="question mainQuestion"><i class="far fa-question-circle"></i>
                         <div class="answer"></div>
                     </div>
                     <p class="enterCentered">Кошелек для перевода:</p>
-                    <img src="assets/logo/qr.png" id="qr" />
-                    <p class="enterCentered" id="forCopy">3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng&nbsp; <i class="far fa-copy"></i></p>
+                    <p class="enterCentered" id="preQR">Появится здесь</p>
+                    <!-- <img src="assets/logo/qr.png" id="qr" class="noDisplay"/> -->
+                    <p class="enterCentered noDisplay" id="forCopy">3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng&nbsp; <i class="far fa-copy"></i></p>
                 </div>
 
                 <div id="animatedLoading"><i class="fas fa-spinner"></i></div>

@@ -102,32 +102,61 @@ body.day {
 }
 
 #navLogos p{
-    position: absolute;
-    right: 10px;
-    top: 0;
-    width: 80px;
+    /* position: absolute; */
+    /* right: 10px; */
+    /* top: 0; */
+
+    width: max-content;
     line-height: 20px;
     text-align: center;
     margin: 0;
+    margin-left: 10px;
     padding: 0;
 }
 
 .navLogo {
     /* background-color: red; */
-    width: 115px;
+    width: max-content;
     color: #7291FF;
     position: relative;
     transition: .2s;
+    display: flex;
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 .navLogo.passive {
     opacity: .5;
 }
 
+#sessionIDBlock {
+    opacity: .5;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-size: 16px;
+    color: #0088cc;
+    transition: .1s;
+    cursor: pointer;
+    z-index: 2;
+    /* border-radius: 5px; */
+    line-height: 22px;
+}
+
+#sessionIDBlock:hover {
+    text-shadow: 0 0 5px #0088cc;
+    transition: .1s;
+    opacity: 1;
+}
+
+#sessionIDBlock span {
+    padding-left: 15px;
+}
+
 #telHelp {
     position: fixed;
-    bottom: 40px;
-    right: 40px;
+    bottom: 20px;
+    right: 20px;
     font-size: 36px;
     color: #0088cc;
     transition: .1s;
@@ -568,6 +597,59 @@ body.day {
     margin-right: 20px;
 }
 
+.tmpQR {
+    width: 82px;
+    height: 82px;
+    /* margin: auto; */
+    margin-left: calc(50% - 41px);
+    margin-top: 25px;
+}
+
+#forCopy {
+    margin-top: 25px;
+}
+
+.noDisplay {
+    display: none;
+}
+
+#preQR {
+    position: absolute;
+    top: 40px;
+}
+
+#radioBlock {
+    width: 220px;
+    margin-left: 30px;
+    display: flex;
+    justify-content: left;
+    flex-wrap: wrap;
+}
+
+.container {
+    width: 100px !important;
+    font-size: 12px !important;
+}
+
+#inputBlock #contentInputBlockMain {
+    height: 200px;
+}
+
+#inputBlock .contentInputBlock:nth-child(2) {
+    margin-top: 60px;
+}
+
+.contentBlock#inputBlock {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 110%;
+    transition: .3s;
+    background-color: #212429;
+    border-radius: 20px;
+}
+
 @keyframes rotation {
     0% {
       transform: rotate(0deg);
@@ -590,6 +672,10 @@ body.day {
 }
 
 @media screen and (max-width: 500px) {
+
+    #radioBlock {
+        margin-left: 10px;
+    }
 
     #content {
         width: 300px;
@@ -644,8 +730,8 @@ body.day {
     }
 
     #navLogos p{
-        right: 5px;
-        width: 65px;
+        /* right: 5px;
+        width: 65px; */
         font-size: 12px;
     }
 
@@ -653,14 +739,47 @@ body.day {
         margin-left: 5px;
     }
 
-    .navLogo {
+    /* .navLogo {
         width: 100px;
-    }
+    } */
     
 }
 
 
 @media screen and (min-width: 1000px) {
+
+    .tmpQR {
+        width: 164px;
+        height: 164px;
+        /* margin: auto; */
+        margin-left: calc(50% - 82px);
+        margin-top: 25px;
+    }
+
+    .contentBlock#inputBlock#inputBlock {
+        height: 100%;
+    }
+
+    #inputBlock .contentInputBlock:nth-child(2) {
+        margin-top: unset;
+    }
+
+    #inputBlock #contentInputBlockMain {
+        height: 250px;
+    }
+
+    #radioBlock {
+        width: 320px;
+        margin-left: 100px;
+        display: flex;
+        justify-content: left;
+        flex-wrap: wrap;
+    }
+
+    .container {
+        width: 150px !important;
+        font-size: 14px !important;
+    }
 
     #content {
         width: 1000px;
@@ -787,6 +906,7 @@ body.day {
     }
 
     #forCopy {
+        margin-top: 30px;
         font-size: 16px;
         width: calc(100% - 20px);
         margin-left: 10px;
@@ -800,8 +920,8 @@ body.day {
     }
 
     #navLogos p{
-        right: 10px;
-        width: 90px;
+        /* right: 10px;
+        width: 90px; */
         font-size: 16px;
     }
 
@@ -809,9 +929,9 @@ body.day {
         margin-left: 10px;
     }
 
-    .navLogo {
+    /* .navLogo {
         width: 130px;
-    }
+    } */
 
     .enterCenteredIcon {
         font-size: 100px;
