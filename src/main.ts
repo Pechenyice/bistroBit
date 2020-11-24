@@ -17,7 +17,7 @@ import * as database from './database';
 dotenv.config();
 
 /* Wrapping code into the async function to have an opportunity
- * to update garantex api jwt token with "await" statement
+ * to update garantex api jwt token ant initialize database with "await" statement
  */
 async function main() {
 
@@ -28,8 +28,7 @@ const db = mysql.createConnection({
     database: process.env.MYSQL_DATABASE,
 });
 
-/* TODO: Implement function database.init(db) */
-// database.init(db);
+await database.init(db);
 
 const garantexApi = new GarantexApi(process.env.GARANTEX_API_UID, {
     publicKey: process.env.GARANTEX_PUBLIC_KEY,
@@ -136,7 +135,7 @@ exchangeProcessWSServer.on('connection', async (socket) => {
             direction: 'withdraw'
         });
         socket.send(JSON.stringify({
-            availableWithdrawTypes: {
+            availableWithdrawMethods: {
                 sber: !!gatewayTypes.find((gt) => gt.id == 8),
                 tinkoff: !!gatewayTypes.find((gt) => gt.id == 16),
                 anyCard: !!gatewayTypes.find((gt) => gt.id == 37),
@@ -172,6 +171,9 @@ interface IExchageSessionData {
     fundsReceived: string,
     withdrawId: number,
     withdrawSucceed: boolean,
+    codeA: number,
+    codeB: number,
+    codeC: number,
     status: SessionStatus
 };
 
@@ -212,6 +214,7 @@ function testCard(card: string): boolean {
     return true;
 }
 
+/* Async delay for some operations in exchange process */
 async function delay(ms: number) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
@@ -233,9 +236,33 @@ function dropRequisites(sessionData: IExchageSessionData) {
     sessionData.withdrawSucceed = false;
 }
 
+/* This is how customer asked. Not I invented this */
+function getCodeB(date: Date): number {
+    let day = date.getDate();
+    let month = date.getMonth() + 1;
+    let year = date.getFullYear();
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    let strDay = day > 9 ? day.toString() : '0' + day.toString();
+    let strMonth = month > 9 ? month.toString() : '0' + month.toString();
+    let strYear = year.toString();
+    let strHours = hours > 9 ? hours.toString() : '0' + hours.toString();
+    let strMinutes = minutes > 9 ? minutes.toString() : '0' + minutes.toString();
+    return parseInt(strDay + strMonth + strYear + strHours + strMinutes);
+}
+
+function getCodeC(codeA: number, codeB: number) {
+    return codeA ^ codeB;
+}
+
 exchangeProcessWSServer.on('connection', (socket, req) => {
+    let randomBytes = crypto.randomBytes(+process.env.SESSION_ID_BYTES_LENGTH || 2);
+    let sessionId = randomBytes.toString('hex').toUpperCase();
+    let codeA = randomBytes.readUIntBE(0, +process.env.SESSION_ID_BYTES_LENGTH || 2);
+    let codeB = getCodeB(new Date());
+    let codeC = getCodeC(codeA, codeB);
     let sessionData: IExchageSessionData = {
-        id: crypto.randomBytes(+process.env.SESSION_ID_BYTES_LENGTH).toString('hex').toUpperCase(),
+        id: sessionId,
         lastAction: Date.now(),
         currency: null,
         address: null,
@@ -250,12 +277,16 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         fundsReceived: null,
         withdrawId: null,
         withdrawSucceed: false,
+        codeA: codeA,
+        codeB: codeB,
+        codeC: codeC,
         status: SessionStatus.waitingCurrency
     };
     exchangeSessions.set(socket, sessionData);
     database.addSessionDataState(db, sessionData);
     successToSocket(socket, {
-        sessionId: sessionData.id
+        sessionId: sessionData.id,
+        codeA: sessionData.codeA
     });
 
     socket.on('message', async (data) => {
@@ -317,7 +348,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
-            } else if (parsedData.withdrawMethod) {
+            } else if (!parsedData.withdrawMethod) {
                 goodbyeSocket(socket, 'No "withdrawMethod" on "setRequisites" action');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
@@ -336,12 +367,15 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     if (gatewayType) return gatewayType.fee;
                     return null;
                 };
+                console.log(gatewayTypes);
                 let availableWithdrawMethodsFees = {
                     sber: getGatewayTypeFee(8),
                     tinkoff: getGatewayTypeFee(16),
                     anyCard: getGatewayTypeFee(37),
                     cash: process.env.CASH_WITHDRAW_AVAILABLE ? '0' : null
                 }
+                console.log(availableWithdrawMethodsFees);
+                console.log(parsedData.withdrawMethod, availableWithdrawMethodsFees[parsedData.withdrawMethod]);
                 if (typeof(availableWithdrawMethodsFees[parsedData.withdrawMethod]) != 'string') {
                     console.log('<ERROR> This withdrawMethod is not available');
                     failToSocket(socket, 'This withdrawMethod is not available', {
@@ -520,11 +554,12 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 if (sessionData.withdrawMethod == 'cash') {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
-                        `1 ${sessionData.currency.toUpperCase()} = ${+sessionData.fundsReceived / +sessionData.depositAmount} р.`
+                        `1 ${sessionData.currency.toUpperCase()} = ${course} р. ` +
+                        `Сохраните второй секретный код: ${sessionData.codeC}`
                 } else {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
-                        `1 ${sessionData.currency.toUpperCase()} = ${+sessionData.fundsReceived / +sessionData.depositAmount} р.`
+                        `1 ${sessionData.currency.toUpperCase()} = ${course} р.`
                 }
 
                 successToSocket(socket, {
