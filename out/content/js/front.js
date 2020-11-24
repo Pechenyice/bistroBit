@@ -4,11 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     let theme = document.getElementById('themeText');
 
     let data = localStorage.getItem('light');
+
+    const hostName = 'c90d5587e6ab.ngrok.io';
     
-    let ws = new WebSocket('ws://localhost:3000/exchangeRatesWSServer');
-    let wsPreload = new WebSocket('ws://localhost:3000/exchangeProcessWSServer');
+    let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
+    let wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
 
     let rates = document.getElementsByClassName('navLogoRates');
+
+    let withdrawMethods = document.getElementsByClassName('withdrawMethods');
     
     ws.onmessage = message => {
         let data = JSON.parse(message.data);
@@ -28,18 +32,65 @@ document.addEventListener("DOMContentLoaded", () => {
         let data = JSON.parse(message.data);
         console.log(data);
 
-        if (data['status'] == 'goodbye') {
+        if (message['data'] && message['data']['sessionId']) {
+            document.getElementById('sessionIDBlock').getElementsByTagName('span')[0].innerHTML = message['data']['sessionId'];
+        }
+
+        if (message['availableWithdrawMethods']) {
+            if (message['availableWithdrawMethods']['sber']) {
+                withdrawMethods[0].removeAttribute('disabled');
+                document.getElementsByClassName('container')[0].classList.remove('fakeContainer');
+            }
+            if (message['availableWithdrawMethods']['tinkoff']) {
+                withdrawMethods[1].removeAttribute('disabled');
+                document.getElementsByClassName('container')[1].classList.remove('fakeContainer');
+            }
+            if (message['availableWithdrawMethods']['anyCard']) {
+                withdrawMethods[2].removeAttribute('disabled');
+                document.getElementsByClassName('container')[2].classList.remove('fakeContainer');
+            }
+            if (message['availableWithdrawMethods']['cash']) {
+                withdrawMethods[3].removeAttribute('disabled');
+                document.getElementsByClassName('container')[3].classList.remove('fakeContainer');
+            }
+
+            document.getElementById('sessionIDBlock').getElementsByTagName('span')[0].innerHTML = message['data']['sessionId'];
+        }
+
+        if (message['data'] && message['data']['depositAddress']) {
+            document.getElementById('forCopy').innerHTML = message['data']['depositAddress'] + '&nbsp; <i class="far fa-copy"></i>';
+            document.getElementById('forCopy').classList.remove('noDisplay');
+            document.getElementById('preQR').classList.add('noDisplay');
+
+            var typeNumber = 4;
+            var errorCorrectionLevel = 'L';
+            var qr = qrcode(typeNumber, errorCorrectionLevel);
+            qr.addData('Hi!');
+            qr.make();
+            // document.getElementById('placeHolder').innerHTML = qr.createImgTag();
+            let tmp = document.createElement('div');
+            tmp.classList.add('tmpQR');
+
+            let size = 4;
+
+            if (document.body.clientWidth < 1000) size = 2;
+
+            tmp.innerHTML = qr.createImgTag(size);
+            document.getElementById('qrMainBlock').insertBefore(tmp, document.getElementById('forCopy'));
+        }
+
+        if (message['status'] == 'goodbye') {
             session.card = "";
             session.currency = "";
-            session.purse = "";
-            console.log(data['errorMessage']);
+            session.withdrawMethod = "";
+            console.log(message['errorMessage']);
 
             document.getElementById('preloaderBlock').style.opacity = 0;
             document.getElementById('failBlock').style.opacity = 0;
             document.getElementById('successBlock').style.opacity = 0;
             document.getElementById('inputBlock').style.opacity = 0;
 
-            wsPreload = new WebSocket('ws://localhost:3000/exchangeProcessWSServer');
+            wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
 
             setTimeout(() => {
                 document.getElementById('preloaderBlock').style.display = 'none';
@@ -95,9 +146,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let session = {
         currency: "",
-        purse: "",
-        card: ""
-    }
+        card: "",
+        withdrawMethod: "sber"
+    }   
 
     switcher.addEventListener('change', () => {
         if (switcher.checked) {
@@ -187,20 +238,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }));
 
             document.getElementById('currencyBlock').style.opacity = 0;
-            switch (session.currency) {
-                case "BTC" : {
-                    document.getElementById('purseImage').src = "assets/logo/bitcoin.png";
-                    break;
-                }
-                case "ETH" : {
-                    document.getElementById('purseImage').src = "assets/logo/etherium.png";
-                    break;
-                }
-                case "USDT" : {
-                    document.getElementById('purseImage').src = "assets/logo/tether.png";
-                    break;
-                }
-            }
+            // switch (session.currency) {
+            //     case "BTC" : {
+            //         document.getElementById('purseImage').src = "assets/logo/bitcoin.png";
+            //         break;
+            //     }
+            //     case "ETH" : {
+            //         document.getElementById('purseImage').src = "assets/logo/etherium.png";
+            //         break;
+            //     }
+            //     case "USDT" : {
+            //         document.getElementById('purseImage').src = "assets/logo/tether.png";
+            //         break;
+            //     }
+            // }
             
             setTimeout(() => {
                 document.getElementById('currencyBlock').style.display = 'none';
@@ -212,9 +263,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('inputBack').addEventListener('click', () => {
         wsPreload.send(JSON.stringify({"action": "dropCurrency"}));
-        document.getElementById('purseInput').value = '';
+        // document.getElementById('purseInput').value = '';
         document.getElementById('cardInput').value = '';
-        session.purse = "";
+        session.withdrawMethod = "sber";
+        withdrawMethods[0].checked = true;
         session.card = "";
         document.getElementById('inputNext').classList.remove("active");
 
@@ -227,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 300);
 
         // session.currency = "";
-        session.purse = "";
+        // session.withdrawMethod = "";
         session.card = "";
     });
 
@@ -247,7 +299,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (value.length == 16) {
             if(/^[0-9]+$/.test(value)){
                 session.card = value;
-                if (session.purse) document.getElementById('inputNext').classList.add('active');
+                // if (session.withdrawMethod) 
+                document.getElementById('inputNext').classList.add('active');
             } else {
             }
         } else {
@@ -267,7 +320,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 this.value = tmp;
                 session.card = value;
-                if (session.purse) document.getElementById('inputNext').classList.add('active');
+                // if (session.withdrawMethod) 
+                document.getElementById('inputNext').classList.add('active');
             } else {
                 this.classList.add('wrong');
                 document.getElementById('inputNext').classList.remove('active');
@@ -282,27 +336,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('cardInput').addEventListener('focus', function() {
         this.value = this.value.replace(/\s/g, '');
-    });
+    });   
 
-    document.getElementById('purseInput').addEventListener('input', function() {
-        if (this.value) {
-            session.purse = this.value;
-            if (session.card) document.getElementById('inputNext').classList.add('active');
-        } else {
-            document.getElementById('inputNext').classList.remove('active');
-            session.purse = "";
-        }
-    });
+    for (let i = 0; i < withdrawMethods.length; i++) {
+        withdrawMethods[i].addEventListener('change', () => {
+            session.withdrawMethod = withdrawMethods[i].value;
+            console.log(session.withdrawMethod)
+        });
+    }
 
-    document.getElementById('purseInput').addEventListener('blur', function() {
-        if (this.value) {
-            session.purse = this.value;
-            if (session.card) document.getElementById('inputNext').classList.add('active');
-        } else {
-            document.getElementById('inputNext').classList.remove('active');
-            session.purse = "";
-        }
-    });
+    // document.getElementById('purseInput').addEventListener('input', () => {
+    //     let value = document.getElementById('purseInput').value;
+    //     if (value) {
+    //         session.withdrawMethod = value;
+    //         if (session.card) document.getElementById('inputNext').classList.add('active');
+    //     } else {
+    //         document.getElementById('inputNext').classList.remove('active');
+    //         session.withdrawMethod = "";
+    //     }
+    // });
+
+    // document.getElementById('purseInput').addEventListener('blur', () => {
+    //     let value = document.getElementById('purseInput').value;
+    //     if (value) {
+    //         session.withdrawMethod = value;
+    //         if (session.card) document.getElementById('inputNext').classList.add('active');
+    //     } else {
+    //         document.getElementById('inputNext').classList.remove('active');
+    //         session.withdrawMethod = "";
+    //     }
+    // });
 
     document.getElementById('forCopy').addEventListener('click', () => {
         copyToClipboard(document.getElementById('forCopy'));
@@ -310,11 +373,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('inputNext').addEventListener('click', () => {
-        if (session.card && session.purse) {
+        if (session.card 
+            // && session.withdrawMethod
+            ) {
+
 
             wsPreload.send(JSON.stringify({
                 "action": "setRequisites",
-                "address": session.purse.toLowerCase(),
+                "withdrawMethod": session.withdrawMethod.toLowerCase(),
                 "card": session.card.toLowerCase()
             }));
 
@@ -328,10 +394,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('failNext').addEventListener('click', () => {
+
         wsPreload.send(JSON.stringify({"action": "dropRequisites"}));
-        document.getElementById('purseInput').value = '';
+
+        // wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
+        // document.getElementById('purseInput').value = '';
         document.getElementById('cardInput').value = '';
-        session.purse = "";
+        session.withdrawMethod = "sber";
+        withdrawMethods[0].checked = true;
         session.card = "";
         document.getElementById('inputNext').classList.remove("active");
         document.getElementById('failBlock').style.opacity = 0;
@@ -343,6 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('successNext').addEventListener('click', () => {
+
+        wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
 
         switch (session.currency) {
             case "BTC" : {
@@ -359,10 +431,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        document.getElementById('purseInput').value = '';
+        // document.getElementById('purseInput').value = '';
         document.getElementById('cardInput').value = '';
         session.currency = "";
-        session.purse = "";
+        session.withdrawMethod = "sber";
+        withdrawMethods[0].checked = true;
         session.card = "";
         document.getElementById('inputNext').classList.remove('active');
         document.getElementById('successBlock').style.opacity = 0;
