@@ -236,7 +236,14 @@ export default class GarantexApi {
         let response = await fetch(`https://${this.host}/api/v2/depth?${data}`, {
             method: 'GET'
         });
-        return await response.json();
+        let text = await response.text();
+        try {
+            let json = JSON.parse(text);
+            return json;
+        } catch {
+            console.log(text);
+            return null
+        }
     }
 
     /**
