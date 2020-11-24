@@ -28,6 +28,6 @@ void async function() {
     console.log('Token generated');
     // console.log(garantexApi.JWT);
     
-    let gateways = await garantexApi.gatewayTypes({ currency: 'rub', direction: 'withdraw' });
-    console.log(gateways);
+    // let gateways = await garantexApi.gatewayTypes({ currency: 'rub', direction: 'withdraw' });
+    // console.log(gateways);
 }();
