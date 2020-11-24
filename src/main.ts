@@ -8,7 +8,6 @@ import * as mysql from 'mysql2';
 import * as express from 'express';
 import * as ws from 'ws';
 
-import apiRouter from './apiRouter';
 import defaultRouter from './defaultRouter';
 import GarantexApi from './garantexApi';
 import * as database from './database';
@@ -30,6 +29,8 @@ const db = mysql.createConnection({
 
 await database.init(db);
 
+// console.log(await database.getSessionDataStates(db, '306D'));
+
 const garantexApi = new GarantexApi(process.env.GARANTEX_API_UID, {
     publicKey: process.env.GARANTEX_PUBLIC_KEY,
     privateKey: process.env.GARANTEX_PRIVATE_KEY
@@ -39,15 +40,23 @@ await garantexApi.updateJwt();
 
 const app = express();
 
-app.use(express.static('content'));
+const sessionsRouter = express.Router();
+
+sessionsRouter.get('/:sessionId', async (req, res) => {
+    let sessionStates = await database.getSessionDataStates(db, req.params.sessionId);
+    if (sessionStates.length) {
+        /* TODO: Not ready yet */
+    }
+});
 
 app.use((req, res, next) => {
-    if (req.hostname == process.env.API_HOSTNAME) {
-        apiRouter(req, res, next);
-    } else if (req.hostname == process.env.DEFAULT_HOSTNAME) {
+    console.log(req.hostname);
+    if (req.hostname == process.env.DEFAULT_HOSTNAME) {
         defaultRouter(req, res, next);
+    } else if (req.hostname == process.env.SESSIONS_HOSTNAME) {
+        sessionsRouter(req, res, next);
     } else {
-        res.status(404).send('<h1>404 Not Found</h1>')
+        res.status(404).send('<center><h1>404 Not Found</h1></center>')
     }
 });
 
@@ -65,7 +74,7 @@ const exchangeRatesWSServer = new ws.Server({noServer: true});
 
 async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): Promise<number> {
     let depth = await garantexApi.getDepth({ market: market });
-    if (!depth.bids) throw depth;
+    if (!depth || !depth.bids) throw new Error();
     else {
         let totalVolume = 0;
         let totalPrice = 0;
@@ -90,10 +99,6 @@ let updateExchangeRateWorker = (() => {
         if (exchangeRatesWSServer.clients.size) {
             let rates;
             let message;
-            /* Placed here this console.log because once I got error
-             * that crashed process while request to /depth api endpoint
-             */
-            console.log('Trying to get rates');
             try {
                 let btcrubExchangeRate = calculateExchangeRate('btcrub');
                 let ethrubExchangeRate = calculateExchangeRate('ethrub');
@@ -134,14 +139,14 @@ exchangeProcessWSServer.on('connection', async (socket) => {
             currency: 'rub',
             direction: 'withdraw'
         });
-        socket.send(JSON.stringify({
+        successToSocket(socket, {
             availableWithdrawMethods: {
                 sber: !!gatewayTypes.find((gt) => gt.id == 8),
                 tinkoff: !!gatewayTypes.find((gt) => gt.id == 16),
                 anyCard: !!gatewayTypes.find((gt) => gt.id == 37),
                 cash: process.env.CASH_WITHDRAW_AVAILABLE ? true : false
             }
-        }));
+        });
     } catch {}
 });
 
@@ -283,10 +288,9 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         status: SessionStatus.waitingCurrency
     };
     exchangeSessions.set(socket, sessionData);
-    database.addSessionDataState(db, sessionData);
     successToSocket(socket, {
-        sessionId: sessionData.id,
-        codeA: sessionData.codeA
+        sessionId: sessionId,
+        codeA: codeA
     });
 
     socket.on('message', async (data) => {
@@ -344,15 +348,19 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 goodbyeSocket(socket, 'Unexpected action (setRequisites)');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
-            } else if (!parsedData.card) {
+            } else if (parsedData.withdrawMethod != 'cash' && !parsedData.card) {
                 goodbyeSocket(socket, 'No "card" propery on "setRequisites" action');
+                sessionData.status = SessionStatus.banned;
+                database.addSessionDataState(db, sessionData);
+            } else if (parsedData.withdrawMethod == 'cash' && parsedData.card) {
+                goodbyeSocket(socket, 'Unexpected field "card" on "withdrawMethod" = "cash"');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
             } else if (!parsedData.withdrawMethod) {
                 goodbyeSocket(socket, 'No "withdrawMethod" on "setRequisites" action');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
-            } else if (!testCard(parsedData.card)) {
+            } else if (parsedData.withdrawMethod != 'cash' && !testCard(parsedData.card)) {
                 goodbyeSocket(socket, 'Incorrect "card" on "setRequisites" action');
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
@@ -550,7 +558,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 const roundToTen = (value: number) => Math.floor(value / 10) * 10;
                 let newShowStatus: string;
                 let course = roundToTen(+sessionData.fundsReceived) / +sessionData.depositAmount;
-                course = course / 100 * (100 - sessionData.withdrawMethodFee);
+                course = course / 100 * (100 - +process.env.FIRST_FEE - +process.env.SECOND_FEE);
                 if (sessionData.withdrawMethod == 'cash') {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
