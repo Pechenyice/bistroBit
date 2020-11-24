@@ -36,20 +36,20 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('sessionIDBlock').getElementsByTagName('span')[0].innerHTML = message['data']['sessionId'];
         }
 
-        if (message['availableWithdrawTypes']) {
-            if (message['availableWithdrawTypes']['sber']) {
+        if (message['availableWithdrawMethods']) {
+            if (message['availableWithdrawMethods']['sber']) {
                 withdrawMethods[0].removeAttribute('disabled');
                 document.getElementsByClassName('container')[0].classList.remove('fakeContainer');
             }
-            if (message['availableWithdrawTypes']['tinkoff']) {
+            if (message['availableWithdrawMethods']['tinkoff']) {
                 withdrawMethods[1].removeAttribute('disabled');
                 document.getElementsByClassName('container')[1].classList.remove('fakeContainer');
             }
-            if (message['availableWithdrawTypes']['anyCard']) {
+            if (message['availableWithdrawMethods']['anyCard']) {
                 withdrawMethods[2].removeAttribute('disabled');
                 document.getElementsByClassName('container')[2].classList.remove('fakeContainer');
             }
-            if (message['availableWithdrawTypes']['cash']) {
+            if (message['availableWithdrawMethods']['cash']) {
                 withdrawMethods[3].removeAttribute('disabled');
                 document.getElementsByClassName('container')[3].classList.remove('fakeContainer');
             }
