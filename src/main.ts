@@ -7,10 +7,24 @@ import * as crypto from 'crypto';
 import * as mysql from 'mysql2';
 import * as express from 'express';
 import * as ws from 'ws';
+import * as bintable from 'bintable_api';
+import * as fetch from 'node-fetch';
 
 import defaultRouter from './defaultRouter';
 import GarantexApi from './garantexApi';
 import * as database from './database';
+
+async function bintableTest(bin: string) {
+    let response = await fetch(`https://api.bintable.com/v1/${bin}?api_key=${process.env.BINTABLE_API_KEY}`);
+    try {
+        let text = await response.text();
+        console.log(text);
+        return JSON.parse(text);
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
 
 /* Getting environment variables from .env file */
 dotenv.config();
@@ -45,7 +59,35 @@ const sessionsRouter = express.Router();
 sessionsRouter.get('/:sessionId', async (req, res) => {
     let sessionStates = await database.getSessionDataStates(db, req.params.sessionId);
     if (sessionStates.length) {
-        /* TODO: Not ready yet */
+        let tableRows = '';
+        for (let state of sessionStates) {
+            tableRows +=
+                '<tr>' +
+                    `<td>${state.timestamp}</td>` +
+                    `<td>${state.status}</td>` +
+                    `<td>${state.currency || '-'}</td>` +
+                    `<td>${state.card || '-'}</td>` +
+                    `<td>${state.withdrawMethod || '-'}</td>` +
+                    `<td>${state.depositAddress || '-'}</td>` +
+                    `<td>${state.depositAmount || '-'}</td>` +
+                    `<td>${state.orderId || '-'}</td>` +
+                    `<td>${state.fundsReceived || '-'}</td>` +
+                    `<td>${state.withdrawId || '-'}</td>` +
+                    `<td>${state.withdrawSucceed || '-'}</td>` +
+                    `<td>${state.ref || '-'}</td>` +
+                    `<td>${state.codeA}</td>` +
+                    `<td>${state.codeB}</td>` +
+                    `<td>${state.codeC}</td>` +
+                '</tr>';
+        }
+        let template = fs.readFileSync(path.join(__dirname, 'content/sessions.html'), 'utf8');
+        let html = template
+            .replace('{title}', req.params.sessionId)
+            .replace('{tableCaption}', req.params.sessionId)
+            .replace('{tableRows}', tableRows);
+        res.send(html);
+    } else {
+        res.status(404).send(`<center><h1>404 Session ${req.params.sessionId} Not Found</h1></center>`);
     }
 });
 
@@ -56,7 +98,7 @@ app.use((req, res, next) => {
     } else if (req.hostname == process.env.SESSIONS_HOSTNAME) {
         sessionsRouter(req, res, next);
     } else {
-        res.status(404).send('<center><h1>404 Not Found</h1></center>')
+        res.status(404).send('<center><h1>404 Not Found</h1></center>');
     }
 });
 
@@ -130,26 +172,6 @@ let updateExchangeRateWorker = (() => {
     return updateExchangeRateWorker;
 })();
 
-const exchangeProcessWSServer = new ws.Server({noServer: true});
-
-exchangeProcessWSServer.on('connection', async (socket) => {
-    updateExchangeRateWorker();
-    try {
-        let gatewayTypes = await garantexApi.getGatewayTypes({
-            currency: 'rub',
-            direction: 'withdraw'
-        });
-        successToSocket(socket, {
-            availableWithdrawMethods: {
-                sber: !!gatewayTypes.find((gt) => gt.id == 8),
-                tinkoff: !!gatewayTypes.find((gt) => gt.id == 16),
-                anyCard: !!gatewayTypes.find((gt) => gt.id == 37),
-                cash: process.env.CASH_WITHDRAW_AVAILABLE ? true : false
-            }
-        });
-    } catch {}
-});
-
 enum SessionStatus {
     waitingCurrency,
     waitingRequisites,
@@ -179,6 +201,8 @@ interface IExchageSessionData {
     codeA: number,
     codeB: number,
     codeC: number,
+    ip: string,
+    ref: string,
     status: SessionStatus
 };
 
@@ -260,12 +284,35 @@ function getCodeC(codeA: number, codeB: number) {
     return codeA ^ codeB;
 }
 
-exchangeProcessWSServer.on('connection', (socket, req) => {
+const exchangeProcessWSServer = new ws.Server({noServer: true});
+
+exchangeProcessWSServer.on('connection', async (socket, req) => {
+    updateExchangeRateWorker();
+    try {
+        let gatewayTypes = await garantexApi.getGatewayTypes({
+            currency: 'rub',
+            direction: 'withdraw'
+        });
+        successToSocket(socket, {
+            availableWithdrawMethods: {
+                sber: !!gatewayTypes.find((gt) => gt.id == 8),
+                tinkoff: !!gatewayTypes.find((gt) => gt.id == 16),
+                anyCard: !!gatewayTypes.find((gt) => gt.id == 37),
+                cash: process.env.CASH_WITHDRAW_AVAILABLE ? true : false
+            }
+        });
+    } catch {}
+
     let randomBytes = crypto.randomBytes(+process.env.SESSION_ID_BYTES_LENGTH || 2);
     let sessionId = randomBytes.toString('hex').toUpperCase();
     let codeA = randomBytes.readUIntBE(0, +process.env.SESSION_ID_BYTES_LENGTH || 2);
     let codeB = getCodeB(new Date());
     let codeC = getCodeC(codeA, codeB);
+    let refPosition = req.url.indexOf('?ref=') + 5;
+    let ref = null;
+    if (refPosition != 4) {
+        ref = req.url.slice(refPosition);
+    }
     let sessionData: IExchageSessionData = {
         id: sessionId,
         lastAction: Date.now(),
@@ -285,6 +332,8 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
         codeA: codeA,
         codeB: codeB,
         codeC: codeC,
+        ip: req.connection.remoteAddress,
+        ref: ref || null,
         status: SessionStatus.waitingCurrency
     };
     exchangeSessions.set(socket, sessionData);
@@ -365,7 +414,37 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 sessionData.status = SessionStatus.banned;
                 database.addSessionDataState(db, sessionData);
             } else {
-                /* Checking availablity of selected withdraw type (sber, tinkoff, anyCard or cash */
+                if (parsedData.withdrawMethod != 'cash') {
+                    let cardDataByBinCode: any = await bintableTest(parsedData.card.slice(0, 6));
+                    console.log(cardDataByBinCode);
+                    let correctWithdrawMethod: boolean;
+                    let reason: string;
+                    if (!cardDataByBinCode || !cardDataByBinCode.data || !cardDataByBinCode.data.country) {
+                        correctWithdrawMethod = true;
+                    } else if (cardDataByBinCode.data.country.name != 'Russian federation') {
+                        correctWithdrawMethod = false;
+                        reason = 'Указанная карта не принадлежит РФ';
+                    } else {
+                        correctWithdrawMethod =
+                            parsedData.withdrawMethod == 'tinkoff' ? cardDataByBinCode.data.bank.name == 'TINKOFF BANK' :
+                            parsedData.withdrawMethod == 'sber' ? cardDataByBinCode.data.bank.name == 'SAVINGS BANK OF THE RUSSIAN FEDERATION (SBERBANK)' :
+                            parsedData.withdrawMethod == 'anyCard' ? true : false;
+                        let bankName =
+                            parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
+                            parsedData.withdrawMethod == 'sber' ? 'Сбербанк' : '<bank>';
+                        reason = `Вы указали ${bankName} в качестве банка для вывода средств, но указанная карта не принадлежит этому банку`;
+                    }
+                    if (!correctWithdrawMethod) {
+                        failToSocket(socket, 'Card is not correct', {
+                            completed: true,
+                            newShowStatus: reason
+                        });
+                        sessionData.status = SessionStatus.failed;
+                        database.addSessionDataState(db, sessionData);
+                        return;
+                    }
+                }
+                /* Checking availablity of selected withdraw type (sber, tinkoff, anyCard or cash) */
                 let gatewayTypes = await garantexApi.getGatewayTypes({
                     currency: 'rub',
                     direction: 'withdraw'
@@ -381,7 +460,7 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                     tinkoff: getGatewayTypeFee(16),
                     anyCard: getGatewayTypeFee(37),
                     cash: process.env.CASH_WITHDRAW_AVAILABLE ? '0' : null
-                }
+                };
                 console.log(availableWithdrawMethodsFees);
                 console.log(parsedData.withdrawMethod, availableWithdrawMethodsFees[parsedData.withdrawMethod]);
                 if (typeof(availableWithdrawMethodsFees[parsedData.withdrawMethod]) != 'string') {
@@ -528,11 +607,10 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
                 });
 
                 /* Waiting for exchange */
-                let orderInfo;
                 for (let attempt = 0; attempt < 30; attempt++) {
                     console.log('Waiting for exchange #' + attempt);
                     try {
-                        orderInfo = await garantexApi.getOrder({
+                        let orderInfo = await garantexApi.getOrder({
                             id: sessionData.orderId
                         });
                         if (orderInfo && orderInfo.state == 'done') {
@@ -666,11 +744,11 @@ exchangeProcessWSServer.on('connection', (socket, req) => {
 const wsServer = http.createServer();
 
 wsServer.on('upgrade', (req, socket, head) => {
-    if (req.url == '/exchangeRatesWSServer') {
+    if (req.url.includes('/exchangeRatesWSServer')) {
         exchangeRatesWSServer.handleUpgrade(req, socket, head, (socket) => {
             exchangeRatesWSServer.emit('connection', socket, req);
         });
-    } else if (req.url == '/exchangeProcessWSServer') {
+    } else if (req.url.includes('/exchangeProcessWSServer')) {
         exchangeProcessWSServer.handleUpgrade(req, socket, head, (socket) => {
             exchangeProcessWSServer.emit('connection', socket, req);
         });
