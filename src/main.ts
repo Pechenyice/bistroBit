@@ -7,7 +7,6 @@ import * as crypto from 'crypto';
 import * as mysql from 'mysql2';
 import * as express from 'express';
 import * as ws from 'ws';
-import * as bintable from 'bintable_api';
 import * as fetch from 'node-fetch';
 
 import defaultRouter from './defaultRouter';
