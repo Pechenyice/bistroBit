@@ -8,24 +8,11 @@
     <link rel="stylesheet" href="css/radio.css">
     <link rel="stylesheet" href="css/preloader.css">
     <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="assets/logo/bitcoin.png" type="image/png">
     <script type="text/javascript" src="js/qrcode.js"></script>
     <title>БыстроБит</title>
     <script src="js/front.js"></script>
 </head>
 <body class="night">
-
-    <div id="preloaderBlockMainOnStart">
-        <div class="caption">
-            <div class="cube-loader">
-              <div class="cube loader-1"></div>
-              <div class="cube loader-2"></div>
-              <div class="cube loader-4"></div>
-              <div class="cube loader-3"></div>
-            </div>
-        </div>
-        <p id="preloaderBlockMainText">Загрузка...</p>
-    </div>
 
     <div id="statNav">
         <p id="navName">БыстроБит</p>
@@ -88,16 +75,14 @@
 
                     <div class="contentInputBlock">
                         <div class="question"><i class="far fa-question-circle"></i>
-                            <div class="answer">
-                                <p class="answerText">Выберите карту, на которую хотите вывести деньги.<br/>В случае выбора наличных сохраните код, который будет выведен</p>
-                            </div>
+                            <div class="answer"></div>
                         </div>
                         <p class="inputLabel">Способ вывода:</p>
                         <!-- <input type="text" name="purse" class="inputInput" id="purseInput" placeholder="3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng"/>
                         <img src="assets/logo/bitcoin.png" class="inputImage" id="purseImage" /> -->
                         <div id="radioBlock">
                             <label class="container fakeContainer">Сбербанк
-                                <input type="radio" disabled name="paymentType" class="withdrawMethods" value="sber">
+                                <input type="radio" checked="checked" disabled name="paymentType" class="withdrawMethods" value="sber">
                                 <span class="checkmark"></span>
                             </label>
                               
@@ -107,7 +92,7 @@
                             </label>
                               
                             <label class="container fakeContainer">Любая карта
-                                <input type="radio" checked="checked" name="paymentType" disabled class="withdrawMethods" value="anyCard">
+                                <input type="radio" name="paymentType" disabled class="withdrawMethods" value="anyCard">
                                 <span class="checkmark"></span>
                             </label>
                               
@@ -120,12 +105,10 @@
 
                     <div class="contentInputBlock">
                         <div class="question"><i class="far fa-question-circle"></i>
-                            <div class="answer">
-                                <p class="answerText">В случае выбора наличных как метод вывода средств, сохраните код, который будет выведен здесь</p>
-                            </div>
+                            <div class="answer"></div>
                         </div>
                         <p class="inputLabel" id="forCashLabel">Номер карты:</p>
-                        <input type="text" name="purse" class="inputInput" id="cardInput" autocomplete="off" placeholder="1234 1234 1234 1234" maxlength="20"/>
+                        <input type="text" name="purse" class="inputInput" id="cardInput" placeholder="4276 5500 5327 0297"/>
                         <img src="" class="inputImage" id="cardImage" />
                     </div>
 
@@ -138,9 +121,7 @@
 
                 <div class="contentPreloaderBlockMain" id="qrMainBlock">
                     <div class="question mainQuestion"><i class="far fa-question-circle"></i>
-                        <div class="answer">
-                            <p class="answerText">Переведите криптовалюту на указанный адрес</p>
-                        </div>
+                        <div class="answer"></div>
                     </div>
                     <p class="enterCentered">Кошелек для перевода:</p>
                     <p class="enterCentered" id="preQR">Появится здесь</p>

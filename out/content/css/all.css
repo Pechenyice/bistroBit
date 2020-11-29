@@ -31,7 +31,7 @@ body.day {
     min-height: 100vh;
     background-color: #292C31;
     margin: auto;
-    z-index: 0;
+    /* z-index: 0; */
     position: relative;
     padding-top: 140px;
     transition: .2s;
@@ -431,15 +431,25 @@ body.day {
 }
 
 .answer {
-    height: 80px;
-    width: 100px;
+    height: 110px;
+    width: 200px;
     background-color: #fff;
     color: black;
     border-radius: 20px;
     position: absolute;
-    top: -80px;
-    left: -45px;
+    top: -110px;
+    left: -90px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
     display: none;
+    z-index: 100;
+}
+
+.answerText {
+    margin: 0;
+    text-align: center;
+    font-size: 12px;
 }
 
 .day .answer {
@@ -448,7 +458,7 @@ body.day {
 }
 
 .question:hover .answer {
-    display: block;
+    display: flex;
 }
 
 .inputLabel {
@@ -624,6 +634,7 @@ body.day {
     display: flex;
     justify-content: left;
     flex-wrap: wrap;
+    margin-top: -7px;
 }
 
 .container {
@@ -650,6 +661,16 @@ body.day {
     border-radius: 20px;
 }
 
+/* #preloaderBlockMain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .5);
+    z-index: 10;
+} */
+
 @keyframes rotation {
     0% {
       transform: rotate(0deg);
@@ -670,6 +691,20 @@ body.day {
         transform: scale(1.0);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media screen and (max-width: 500px) {
 
@@ -744,6 +779,20 @@ body.day {
     } */
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @media screen and (min-width: 1000px) {

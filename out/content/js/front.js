@@ -5,18 +5,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let data = localStorage.getItem('light');
 
+    let isCash = false;
+    let preloadReady = 0;
+
     const hostName = 'c90d5587e6ab.ngrok.io';
     
     let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
-    let wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
+
+    window.location.hash = '#1234';
+
+    console.log(window.location.hash);
+
+    let wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer?ref=' + window.location.hash.slice(1));
 
     let rates = document.getElementsByClassName('navLogoRates');
 
     let withdrawMethods = document.getElementsByClassName('withdrawMethods');
+
+    let cashCode;
     
     ws.onmessage = message => {
-        let data = JSON.parse(message.data);
-        console.table(data);
+        data = JSON.parse(message.data);
+        // console.log(data);
         if (data['errorMessage']) {
             rates[0].innerHTML = "X";
             rates[1].innerHTML = "X";
@@ -29,32 +39,68 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     wsPreload.onmessage = message => {
-        let data = JSON.parse(message.data);
-        console.log(data);
+        message = JSON.parse(message.data);
+        console.log(message);
+
+        
 
         if (message['data'] && message['data']['sessionId']) {
             document.getElementById('sessionIDBlock').getElementsByTagName('span')[0].innerHTML = message['data']['sessionId'];
+            
+            if (preloadReady) {
+                document.getElementById('preloaderBlockMainOnStart').style.opacity = '0';
+                setTimeout( () => {
+                    document.getElementById('preloaderBlockMainOnStart').style.display = 'none';
+                }, 300);
+            }
+            if (!preloadReady) preloadReady = 1;
         }
 
-        if (message['availableWithdrawMethods']) {
-            if (message['availableWithdrawMethods']['sber']) {
-                withdrawMethods[0].removeAttribute('disabled');
-                document.getElementsByClassName('container')[0].classList.remove('fakeContainer');
-            }
-            if (message['availableWithdrawMethods']['tinkoff']) {
-                withdrawMethods[1].removeAttribute('disabled');
-                document.getElementsByClassName('container')[1].classList.remove('fakeContainer');
-            }
-            if (message['availableWithdrawMethods']['anyCard']) {
+        if (message['data'] && message['data']['codeA']) {
+            cashCode = message['data']['codeA'];
+        }
+
+        if (message['data'] && message['data']['availableWithdrawMethods']) {
+            if (message['data']['availableWithdrawMethods']['anyCard']) {
+                withdrawMethods[2].checked = true;
                 withdrawMethods[2].removeAttribute('disabled');
                 document.getElementsByClassName('container')[2].classList.remove('fakeContainer');
-            }
-            if (message['availableWithdrawMethods']['cash']) {
-                withdrawMethods[3].removeAttribute('disabled');
-                document.getElementsByClassName('container')[3].classList.remove('fakeContainer');
+            } else {
+                withdrawMethods[0].checked = true;
             }
 
-            document.getElementById('sessionIDBlock').getElementsByTagName('span')[0].innerHTML = message['data']['sessionId'];
+            if (message['data']['availableWithdrawMethods']['sber']) {
+                withdrawMethods[0].removeAttribute('disabled');
+                document.getElementsByClassName('container')[0].classList.remove('fakeContainer');
+            } else {
+                withdrawMethods[1].checked = true;
+            }
+
+            if (message['data']['availableWithdrawMethods']['tinkoff']) {
+                withdrawMethods[1].removeAttribute('disabled');
+                document.getElementsByClassName('container')[1].classList.remove('fakeContainer');
+            } else {
+                withdrawMethods[3].checked = true;
+            }
+            
+            if (message['data']['availableWithdrawMethods']['cash']) {
+                withdrawMethods[3].removeAttribute('disabled');
+                document.getElementsByClassName('container')[3].classList.remove('fakeContainer');
+            } else {
+                withdrawMethods[0].checked = false;
+                withdrawMethods[1].checked = false;
+                withdrawMethods[2].checked = false;
+                withdrawMethods[3].checked = false;
+            }
+
+            if (preloadReady) {
+                document.getElementById('preloaderBlockMainOnStart').style.opacity = '0';
+                setTimeout( () => {
+                    document.getElementById('preloaderBlockMainOnStart').style.display = 'none';
+                }, 300);
+            }
+            if (!preloadReady) preloadReady = 1;
+
         }
 
         if (message['data'] && message['data']['depositAddress']) {
@@ -80,34 +126,37 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (message['status'] == 'goodbye') {
-            session.card = "";
-            session.currency = "";
-            session.withdrawMethod = "";
-            console.log(message['errorMessage']);
+            // session.card = "";
+            // session.currency = "";
+            // session.withdrawMethod = "";
+            // console.log(message['errorMessage']);
 
-            document.getElementById('preloaderBlock').style.opacity = 0;
-            document.getElementById('failBlock').style.opacity = 0;
-            document.getElementById('successBlock').style.opacity = 0;
-            document.getElementById('inputBlock').style.opacity = 0;
+            // document.getElementById('preloaderBlock').style.opacity = 0;
+            // document.getElementById('failBlock').style.opacity = 0;
+            // document.getElementById('successBlock').style.opacity = 0;
+            // document.getElementById('inputBlock').style.opacity = 0;
 
-            wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
+            // wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
 
-            setTimeout(() => {
-                document.getElementById('preloaderBlock').style.display = 'none';
-                document.getElementById('failBlock').style.display = 'none';
-                document.getElementById('successBlock').style.display = 'none';
-                document.getElementById('inputBlock').style.display = 'none';
+            // setTimeout(() => {
+            //     document.getElementById('preloaderBlock').style.display = 'none';
+            //     document.getElementById('failBlock').style.display = 'none';
+            //     document.getElementById('successBlock').style.display = 'none';
+            //     document.getElementById('inputBlock').style.display = 'none';
 
-                document.getElementById('currencyBlock').style.opacity = 1;
-                document.getElementById('currencyBlock').style.display = 'block';
-            }, 300);
+            //     document.getElementById('currencyBlock').style.opacity = 1;
+            //     document.getElementById('currencyBlock').style.display = 'block';
+            // }, 300);
           
+            document.location.reload();
+            alert('Что-то пошло не так! Начните заново!')
             return;
         }
 
-        if (!(data['data']['completed'])) {
-            document.getElementById('preloaderServerText').innerHTML = data['data']['newShowStatus'];
-        } else if (data['status'] == 'fail') {
+        if (message['data'] && !(message['data']['completed'])) {
+            document.getElementById('preloaderServerText').innerHTML = message['data']['newShowStatus'];
+            if (document.getElementById('preloaderServerText').innerHTML == "undefined") document.getElementById('preloaderServerText').innerHTML = "Отправка реквизитов";
+        } else if (message['status'] == 'fail') {
             document.getElementById('preloaderBlock').style.opacity = 0;
 
             setTimeout(() => {
@@ -116,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById('failBlock').style.display = 'block';
             }, 300);
 
-            document.getElementById('errorServerText').innerHTML = data['data']['newShowStatus'];
+            document.getElementById('errorServerText').innerHTML = message['data']['newShowStatus'];
 
         } else {
             document.getElementById('preloaderBlock').style.opacity = 0;
@@ -127,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById('successBlock').style.display = 'block';
             }, 300);
 
-            document.getElementById('successServerText').innerHTML = data['data']['newShowStatus'];
+            document.getElementById('successServerText').innerHTML = message['data']['newShowStatus'];
         }
 
     };
@@ -283,65 +332,121 @@ document.addEventListener("DOMContentLoaded", () => {
         session.card = "";
     });
 
-    document.getElementById('cardInput').addEventListener('input', function() {
-        this.classList.remove('wrong');
-        let value = this.value;
-        if (!value[0]) {
-            document.getElementById('cardImage').src = "";
-        }
-        if (value[0] == 4) {
-            document.getElementById('cardImage').src = "assets/logo/visa.png";
-        }
-        if (value[0] == 5) {
-            document.getElementById('cardImage').src = "assets/logo/master.png";
-        }
-        value = value.replace(/\s/g, '');
-        if (value.length == 16) {
-            if(/^[0-9]+$/.test(value)){
-                session.card = value;
-                // if (session.withdrawMethod) 
-                document.getElementById('inputNext').classList.add('active');
+    document.getElementById('cardInput').addEventListener('input', () => {
+
+        if (!isCash) {
+            document.getElementById('cardInput').classList.remove('wrong');
+            let value = document.getElementById('cardInput').value;
+            // if (!value[0]) {
+            //     document.getElementById('cardImage').src = "";
+            // }
+            
+            // if (value[0] == 4) {
+            //     document.getElementById('cardImage').src = "assets/logo/visa.png";
+            // }
+            // if (value[0] == 5) {
+            //     document.getElementById('cardImage').src = "assets/logo/master.png";
+            // }
+            // if (value[0] == 1 || value[0] == 7 || value[0] == 8 || value[0] == 9) {
+            //     document.getElementById('cardInput').classList.add('wrong');
+            //     document.getElementById('inputNext').classList.remove('active');
+            //     session.card = "";
+            // }
+            value = value.replace(/\s/g, '');
+            if (value.length <= 20 && value.length >= 16) {
+                if(/^[0-9]+$/.test(value)){
+                    session.card = value;
+                    // if (session.withdrawMethod) 
+                    document.getElementById('inputNext').classList.add('active');
+
+                    if (!algLune(value)) {
+                        document.getElementById('inputNext').classList.remove('active');
+                        document.getElementById('cardInput').classList.add('wrong');
+                    }
+
+                    // if (value[0] == 1 || value[0] == 7 || value[0] == 8 || value[0] == 9) {
+                    //     document.getElementById('cardInput').classList.add('wrong');
+                    //     document.getElementById('inputNext').classList.remove('active');
+                    //     session.card = "";
+                    // }
+                } else {
+                }
             } else {
+                document.getElementById('inputNext').classList.remove('active');
             }
-        } else {
-            document.getElementById('inputNext').classList.remove('active');
         }
+
     });
 
-    document.getElementById('cardInput').addEventListener('blur', function() {
-        let value = this.value;
-        value = value.replace(/\s/g, '');
-        if (value.length == 16) {
-            if(/^[0-9]+$/.test(value)){
-                let tmp = "";
-                for (let i = 3; i < 16; i+=4) {
-                    let beforeSubStr = value.substring(i-3,i + 1);
-                    tmp += beforeSubStr + " ";
+    document.getElementById('cardInput').addEventListener('blur', () => {
+        if (!isCash) {
+            let value = document.getElementById('cardInput').value;
+            value = value.replace(/\s/g, '');
+            if (value.length <= 20 && value.length >= 16) {
+                if(/^[0-9]+$/.test(value)){
+                    let tmp = "";
+                    for (let i = 3; i < 16; i+=4) {
+                        let beforeSubStr = value.substring(i-3,i + 1);
+                        tmp += beforeSubStr + " ";
+                    }
+                    document.getElementById('cardInput').value = tmp;
+                    session.card = value;
+                    // if (session.withdrawMethod) 
+                    document.getElementById('inputNext').classList.add('active');
+
+                    // if (value[0] == 1 || value[0] == 7 || value[0] == 8 || value[0] == 9) {
+                    //     document.getElementById('cardInput').classList.add('wrong');
+                    //     document.getElementById('inputNext').classList.remove('active');
+                    //     session.card = "";
+                    // }
+
+                    if (!algLune(value)) {
+                        document.getElementById('inputNext').classList.remove('active');
+                        document.getElementById('cardInput').classList.add('wrong');
+                    }
+                    
+                } else {
+                    document.getElementById('cardInput').classList.add('wrong');
+                    document.getElementById('inputNext').classList.remove('active');
+                    session.card = "";
                 }
-                this.value = tmp;
-                session.card = value;
-                // if (session.withdrawMethod) 
-                document.getElementById('inputNext').classList.add('active');
             } else {
-                this.classList.add('wrong');
+                document.getElementById('cardInput').classList.add('wrong');
                 document.getElementById('inputNext').classList.remove('active');
                 session.card = "";
             }
-        } else {
-            this.classList.add('wrong');
-            document.getElementById('inputNext').classList.remove('active');
-            session.card = "";
         }
     });
 
-    document.getElementById('cardInput').addEventListener('focus', function() {
-        this.value = this.value.replace(/\s/g, '');
-    });   
+    document.getElementById('cardInput').addEventListener('focus', () => {
+        if (!isCash) {
+            document.getElementById('cardInput').value = document.getElementById('cardInput').value.replace(/\s/g, '');
+        }
+    });
+
+    
 
     for (let i = 0; i < withdrawMethods.length; i++) {
         withdrawMethods[i].addEventListener('change', () => {
             session.withdrawMethod = withdrawMethods[i].value;
             console.log(session.withdrawMethod)
+
+            if (withdrawMethods[i].value == 'cash') {
+                document.getElementById('forCashLabel').innerHTML = "Сохраните этот код:";
+                document.getElementById('cardInput').setAttribute('readonly', true);
+                document.getElementById('cardInput').value = cashCode;
+                document.getElementById('inputNext').classList.add('active');
+                isCash = 1;
+                document.getElementById('cardInput').classList.remove('wrong');
+                // document.getElementById('cardInput').setAttribute('placeholder', "1234к");
+            } else {
+                isCash = 0;
+                document.getElementById('forCashLabel').innerHTML = "Номер карты:";
+                document.getElementById('inputNext').classList.remove('active');
+                document.getElementById('cardInput').removeAttribute('readonly');
+                document.getElementById('cardInput').setAttribute('placeholder', "1234 1234 1234 1234");
+                document.getElementById('cardInput').value = "";
+            }
         });
     }
 
@@ -373,7 +478,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('inputNext').addEventListener('click', () => {
-        if (session.card 
+        if ((session.card && !isCash) || isCash
             // && session.withdrawMethod
             ) {
 
@@ -496,4 +601,44 @@ function copyToClipboard(elem) {
       target.textContent = "";
   }
   return succeed;
+}
+
+// console.log(algLune("4561261212345464"))
+
+// console.log(algLune("4561261212345467"))
+
+// console.log(algLune("12345678903"))
+
+function algLune(str) {
+    let data = str.split('');
+
+    let odd = (data.length - 1) % 2;
+
+    if (odd) {
+        for (let i = 0; i < data.length - 1; i += 2) {
+            data[i] = Number(data[i]) * 2;
+            if (Number(data[i]) > 9) data[i] -= 9;
+        }
+
+        let sum = 0;
+
+        for (let i = 0; i < data.length; i++) {
+            sum += Number(data[i]);
+        }
+
+        return !(sum % 10);
+    } else {
+        for (let i = 1; i < data.length - 1; i += 2) {
+            data[i] = Number(data[i]) * 2;
+            if (Number(data[i]) > 9) data[i] -= 9;
+        }
+
+        let sum = 0;
+
+        for (let i = 0; i < data.length; i++) {
+            sum += Number(data[i]);
+        }
+
+        return !(sum % 10);
+    }
 }
