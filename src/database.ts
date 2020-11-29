@@ -32,6 +32,7 @@ export function init(db: sqlConnection) {
                 '`fundsReceived` VARCHAR(32),' +
                 '`withdrawId` INT,' +
                 '`withdrawSucceed` INT,' +
+                '`ref` VARCHAR(16),' +
                 '`codeA` BIGINT,' +
                 '`codeB` BIGINT,' +
                 '`codeC` BIGINT' +
@@ -58,7 +59,8 @@ interface IState {
     exchanged: number | boolean,
     fundsReceived: string,
     withdrawId: number,
-    withdrawSucceed: number | boolean, 
+    withdrawSucceed: number | boolean,
+    ref: string,
     codeA: number,
     codeB: number,
     codeC: number
@@ -83,7 +85,7 @@ export function addSessionDataState(db: sqlConnection, data) {
         // console.log(data.codeA, ' - ' + convert(data.codeA));
         // console.log(data.codeB, ' - ' + convert(data.codeB));
         // console.log(data.codeC, ' - ' + convert(data.codeC));
-        let query = 'INSERT INTO `sessionStates` VALUES (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        let query = 'INSERT INTO `sessionStates` VALUES (now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
         db.query(query, [
             convert(data.id),
             convert(data.status),
@@ -99,6 +101,7 @@ export function addSessionDataState(db: sqlConnection, data) {
             convert(data.fundsReceived),
             convert(data.withdrawId),
             convert(data.withdrawSucceed),
+            convert(data.ref),
             convert(data.codeA),
             convert(data.codeB),
             convert(data.codeC)
@@ -133,6 +136,7 @@ export function getSessionDataStates(db: sqlConnection, sessionId: string): Prom
                         fundsReceived: state.fundsReceived,
                         withdrawId: state.withdrawId,
                         withdrawSucceed: state.withdrawSucceed,
+                        ref: state.ref,
                         codeA: state.codeA,
                         codeB: state.codeB,
                         codeC: state.codeC
