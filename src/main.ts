@@ -124,7 +124,9 @@ async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): P
             totalVolume += parseFloat(bid.volume);
             totalPrice += parseFloat(bid.price);
             ++admittedBidsCount;
-            if (totalVolume >= 20) break;
+            if (market == 'btcrub' && totalVolume >= 3) break;
+            else if (market == 'ethrub' && totalVolume >= 100) break;
+            else if (market == 'usdtrub' && totalVolume >= 5000) break;
         }
         let exchangeRate = totalPrice / admittedBidsCount;
         return exchangeRate;
