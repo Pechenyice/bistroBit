@@ -212,14 +212,17 @@ type anyObject = {
 };
 
 function sendSocket(socket: ws, status: string, errorMessage?: string, data?: anyObject | string) {
-    let dataToSend: {
-        status: string,
-        errorMessage?: string,
-        data?: any
-    } = { status };
-    if (errorMessage) dataToSend.errorMessage = errorMessage;
-    if (data) dataToSend.data = data;
-    socket.send(JSON.stringify(dataToSend));
+    /* try-catch if socket.send() raises error when socket disconnected */
+    try {
+        let dataToSend: {
+            status: string,
+            errorMessage?: string,
+            data?: any
+        } = { status };
+        if (errorMessage) dataToSend.errorMessage = errorMessage;
+        if (data) dataToSend.data = data;
+        socket.send(JSON.stringify(dataToSend));
+    } catch {}
 }
 
 function goodbyeSocket(socket: ws, errorMessage?: string) {
@@ -586,7 +589,8 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     if (!order || !order.id) throw new Error();
                     sessionData.orderId = order.id;
                     database.addSessionDataState(db, sessionData);
-                } catch {
+                } catch (e) {
+                    console.log(e);
                     console.log('Error while placing exchange order');
                     failToSocket(socket, 'Error while placing exchange order', {
                         completed: true,
