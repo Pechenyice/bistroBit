@@ -438,9 +438,11 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         correctWithdrawMethod = false;
                         reason = 'Указанная карта не принадлежит РФ';
                     } else {
+                        console.log(parsedData.withdrawMethod, cardDataByBinCode.data.bank.name.toLowerCase().includes('tinkoff'));
+                        console.log(parsedData.withdrawMethod, cardDataByBinCode.data.bank.name.toLowerCase().includes('sberbank'));
                         correctWithdrawMethod =
-                            parsedData.withdrawMethod == 'tinkoff' ? cardDataByBinCode.data.bank.name.toLoverCase().includes('tinkoff') :
-                            parsedData.withdrawMethod == 'sber' ? cardDataByBinCode.data.bank.name.toLoverCase().includes('sberbank') :
+                            parsedData.withdrawMethod == 'tinkoff' ? cardDataByBinCode.data.bank.name.toLowerCase().includes('tinkoff') :
+                            parsedData.withdrawMethod == 'sber' ? cardDataByBinCode.data.bank.name.toLowerCase().includes('sberbank') :
                             parsedData.withdrawMethod == 'anyCard' ? true : false;
                         let bankName =
                             parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
@@ -467,7 +469,6 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     if (gatewayType) return gatewayType.fee;
                     return null;
                 };
-                console.log(gatewayTypes);
                 let availableWithdrawMethodsFees = {
                     sber: getGatewayTypeFee(8),
                     tinkoff: getGatewayTypeFee(16),
@@ -518,6 +519,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     return;
                 }
 
+                /* If user disconnected - no reason to continue */
+                if (socket.readyState != socket.OPEN) return;
+
                 /* 10 Attempts to get deposit address if was not ready on creating */
                 if (!sessionData.depositAddress) {
                     for (let attempt = 0; attempt < 10; attempt++) {
@@ -546,7 +550,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
 
                 successToSocket(socket, {
                     completed: false,
-                    newShowStatus: 'Ожидание платежа',
+                    newShowStatus: `Ожидание платежа. Валюта: ${sessionData.currency.toLowerCase()}, Карта: ${sessionData.card}, Способ вывода: ${sessionData.withdrawMethod}`,
                     depositAddress: sessionData.depositAddress
                 });
                 database.addSessionDataState(db, sessionData);
@@ -768,7 +772,7 @@ wsServer.on('upgrade', (req, socket, head) => {
     }
 });
 
-wsServer.listen(81);
+wsServer.listen(3000);
 
 }
 
