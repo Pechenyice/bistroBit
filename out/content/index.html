@@ -32,15 +32,15 @@
             <div id="navLogos">
                 <div class="navLogo">
                     <img src="assets/logo/bitcoin.png" width="20px" height="20px" />
-                    <p class="navLogoRates">?</p>
+                    <p class="navLogoRates courseRotationState"><i class="fas fa-spinner"></i></p>
                 </div>
                 <div class="navLogo">
                     <img src="assets/logo/etherium.png" width="20px" height="20px" />
-                    <p class="navLogoRates">?</p>
+                    <p class="navLogoRates courseRotationState"><i class="fas fa-spinner"></i></p>
                 </div>
                 <div class="navLogo">
                     <img src="assets/logo/tether.png" width="20px" height="20px" />
-                    <p class="navLogoRates">?</p>
+                    <p class="navLogoRates courseRotationState"><i class="fas fa-spinner"></i></p>
                 </div>
             </div>
     </div>
@@ -96,22 +96,33 @@
                         <!-- <input type="text" name="purse" class="inputInput" id="purseInput" placeholder="3DfMtw5AJa3fsmsnFYfMZjMLhYrWqBPqng"/>
                         <img src="assets/logo/bitcoin.png" class="inputImage" id="purseImage" /> -->
                         <div id="radioBlock">
-                            <label class="container fakeContainer">Сбербанк
+
+                            
+
+                            <label class="container fakeContainer">
+                                <!-- <img src="assets/logo/sber.jpg" class="radioLogo" /> -->
+                                Сбербанк
                                 <input type="radio" disabled name="paymentType" class="withdrawMethods" value="sber">
                                 <span class="checkmark"></span>
                             </label>
                               
-                            <label class="container fakeContainer">Тинькофф
+                            <label class="container fakeContainer">
+                                <!-- <img src="assets/logo/tinkoff.jpg" class="radioLogo" /> -->
+                                Тинькофф
                                 <input type="radio" name="paymentType" disabled class="withdrawMethods" value="tinkoff">
                                 <span class="checkmark"></span>
                             </label>
                               
-                            <label class="container fakeContainer">Любая карта
+                            <label class="container fakeContainer">
+                                <!-- <img src="assets/logo/another.jpg" class="radioLogo" id="anyCardlogo"/> -->
+                                Любая карта
                                 <input type="radio" checked="checked" name="paymentType" disabled class="withdrawMethods" value="anyCard">
                                 <span class="checkmark"></span>
                             </label>
                               
-                            <label class="container fakeContainer">Наличные
+                            <label class="container fakeContainer">
+                                <!-- <img src="assets/logo/cash.png" class="radioLogo" /> -->
+                                Наличные
                                 <input type="radio" name="paymentType" disabled class="withdrawMethods" value="cash">
                                 <span class="checkmark"></span>
                             </label>
@@ -125,7 +136,7 @@
                             </div>
                         </div>
                         <p class="inputLabel" id="forCashLabel">Номер карты:</p>
-                        <input type="text" name="purse" class="inputInput" id="cardInput" autocomplete="off" placeholder="1234 1234 1234 1234" maxlength="20"/>
+                        <input type="text" name="purse" class="inputInput" id="cardInput" autocomplete="off" placeholder="____ ____ ____ ____" maxlength="20"/>
                         <img src="" class="inputImage" id="cardImage" />
                     </div>
 
@@ -135,6 +146,8 @@
             </div>
 
             <div class="contentBlock" id="preloaderBlock">
+
+                <div id="preloaderBack"><i class="fas fa-arrow-left"></i>&nbsp; Отменить обмен</div>
 
                 <div class="contentPreloaderBlockMain" id="qrMainBlock">
                     <div class="question mainQuestion"><i class="far fa-question-circle"></i>

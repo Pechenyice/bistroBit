@@ -400,6 +400,44 @@ body.day {
     transition: .2s;
 }
 
+#preloaderBack {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: max-content;
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 25px;
+    border-radius: 25px;
+    color: white;
+    border: 1px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+#preloaderBack:hover {
+    color: black;
+    background-color: #fff;
+    border: 1px solid white;
+    transition: .2s;
+}
+
+.day #preloaderBack {
+    color: #7291FF;
+    border: 1px solid #7291FF;
+}
+
+.day #preloaderBack:hover {
+    color: white;
+    background-color: #7291FF;
+    border: 1px solid #7291FF;
+    transition: .2s;
+}
+
 .contentInputBlock {
     width: calc(100% - 36px);
     height: 50px;
@@ -489,11 +527,11 @@ body.day {
 }
 
 .inputInput.wrong {
-    background-color: #8E1B1B;
+    border: 2px solid #8E1B1B;
 }
 
 .day .inputInput.wrong {
-    background-color: #8E1B1B;
+    border: 2px solid #8E1B1B;
 }
 
 .day .inputInput {
@@ -661,6 +699,34 @@ body.day {
     border-radius: 20px;
 }
 
+.contentBlock#preloaderBlock {
+    padding-top: 45px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 130%;
+    transition: .3s;
+    background-color: #212429;
+    border-radius: 20px;
+}
+
+.day .contentBlock#inputBlock {
+    background-color: white;
+}
+
+.day .container {
+    color: #7291FF;
+}
+
+.radioLogo {
+    width: 15px;
+    height: 15px;
+    position: absolute;
+    left: -22px;
+    top: 2.5px;
+}
+
 /* #preloaderBlockMain {
     position: absolute;
     top: 0;
@@ -670,6 +736,13 @@ body.day {
     background-color: rgba(0, 0, 0, .5);
     z-index: 10;
 } */
+
+.courseRotationState {
+    animation-name: rotation;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
 
 @keyframes rotation {
     0% {
@@ -797,6 +870,20 @@ body.day {
 
 @media screen and (min-width: 1000px) {
 
+    .contentBlock#preloaderBlock {
+        /* padding-top: 45px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%; */
+        padding-top: 0px;
+        height: 100%;
+        /* transition: .3s;
+        background-color: #212429;
+        border-radius: 20px; */
+    }
+    
+
     .tmpQR {
         width: 164px;
         height: 164px;
@@ -877,6 +964,15 @@ body.day {
         top: 25px;
         left: 50px;
         width: 40px;
+        height: 40px;
+        border-radius: 25px;
+        font-size: 16px;
+    }
+
+    #preloaderBack {
+        top: 25px;
+        left: 25px;
+        width: max-content;
         height: 40px;
         border-radius: 25px;
         font-size: 16px;

@@ -8,13 +8,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let isCash = false;
     let preloadReady = 0;
 
-    const hostName = '0820e2979c3a.ngrok.io';
+    const hostName = 'aff217f53eca.ngrok.io';
     
     let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
 
-    window.location.hash = '#1234';
+    // window.location.hash = '#1234';
 
-    console.log(window.location.hash);
+    // console.log(window.location.hash);
 
     let wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer?ref=' + window.location.hash.slice(1));
 
@@ -28,14 +28,20 @@ document.addEventListener("DOMContentLoaded", () => {
         data = JSON.parse(message.data);
         // console.log(data);
         if (data['errorMessage']) {
-            rates[0].innerHTML = "X";
-            rates[1].innerHTML = "X";
-            rates[2].innerHTML = "X";
+            rates[0].classList.add('courseRotationState')
+            rates[1].classList.add('courseRotationState')
+            rates[2].classList.add('courseRotationState')
+            rates[0].innerHTML = '<i class="fas fa-spinner"></i>';
+            rates[1].innerHTML = '<i class="fas fa-spinner"></i>';
+            rates[2].innerHTML = '<i class="fas fa-spinner"></i>';
             return;
         }
-        rates[0].innerHTML = Math.floor(Number(data['rates']['btc_rub'])*100)/100;
-        rates[1].innerHTML = Math.floor(Number(data['rates']['eth_rub'])*100)/100;
-        rates[2].innerHTML = Math.floor(Number(data['rates']['usdt_rub'])*100)/100;
+        rates[0].classList.remove('courseRotationState')
+        rates[1].classList.remove('courseRotationState')
+        rates[2].classList.remove('courseRotationState')
+        rates[0].innerHTML = (Math.floor(Number(data['rates']['btc_rub'])*100)/100).toLocaleString();
+        rates[1].innerHTML = (Math.floor(Number(data['rates']['eth_rub'])*100)/100).toLocaleString();
+        rates[2].innerHTML = (Math.floor(Number(data['rates']['usdt_rub'])*100)/100).toLocaleString();
     };
 
     wsPreload.onmessage = message => {
@@ -111,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
             var typeNumber = 4;
             var errorCorrectionLevel = 'L';
             var qr = qrcode(typeNumber, errorCorrectionLevel);
-            qr.addData('Hi!');
+            qr.addData(message['data']['depositAddress']);
             qr.make();
             // document.getElementById('placeHolder').innerHTML = qr.createImgTag();
             let tmp = document.createElement('div');
@@ -332,6 +338,29 @@ document.addEventListener("DOMContentLoaded", () => {
         session.card = "";
     });
 
+    document.getElementById('preloaderBack').addEventListener('click', () => {
+        // wsPreload.send(JSON.stringify({"action": "dropCurrency"}));
+        wsPreload = new WebSocket('ws://' + hostName + '/exchangeProcessWSServer');
+        // document.getElementById('purseInput').value = '';
+        document.getElementById('cardInput').value = '';
+        session.withdrawMethod = "sber";
+        withdrawMethods[0].checked = true;
+        session.card = "";
+        document.getElementById('inputNext').classList.remove("active");
+
+        document.getElementById('preloaderBlock').style.opacity = 0;
+
+        setTimeout(() => {
+            document.getElementById('preloaderBlock').style.display = 'none';
+            document.getElementById('currencyBlock').style.display = 'block';
+            document.getElementById('currencyBlock').style.opacity = 1;
+        }, 300);
+
+        // session.currency = "";
+        // session.withdrawMethod = "";
+        session.card = "";
+    });
+
     document.getElementById('cardInput').addEventListener('input', () => {
 
         if (!isCash) {
@@ -385,9 +414,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (value.length <= 20 && value.length >= 16) {
                 if(/^[0-9]+$/.test(value)){
                     let tmp = "";
-                    for (let i = 3; i < 16; i+=4) {
-                        let beforeSubStr = value.substring(i-3,i + 1);
-                        tmp += beforeSubStr + " ";
+                    // for (let i = 3; i < value.length; i+=4) {
+                    //     let beforeSubStr = value.substring(i-3,i + 1);
+                    //     tmp += beforeSubStr + " ";
+                    // }
+                    for (let i = 0; i < value.length; i++) {
+                        // let beforeSubStr = value.substring(i-3,i + 1);
+                        tmp += value[i];
+                        if (i % 4 == 3) tmp += " ";
                     }
                     document.getElementById('cardInput').value = tmp;
                     session.card = value;
@@ -442,10 +476,12 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 isCash = 0;
                 document.getElementById('forCashLabel').innerHTML = "Номер карты:";
-                document.getElementById('inputNext').classList.remove('active');
+                document.getElementById('cardInput').focus();
+                document.getElementById('cardInput').blur();
+                // document.getElementById('inputNext').classList.remove('active');
                 document.getElementById('cardInput').removeAttribute('readonly');
-                document.getElementById('cardInput').setAttribute('placeholder', "1234 1234 1234 1234");
-                document.getElementById('cardInput').value = "";
+                document.getElementById('cardInput').setAttribute('placeholder', "____ ____ ____ ____");
+                // document.getElementById('cardInput').value = "";
             }
         });
     }
