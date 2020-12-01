@@ -2,7 +2,9 @@
     "compilerOptions": {
         "lib": ["es2015"],
         "outDir": "out",
-        "downlevelIteration": true
+        "downlevelIteration": true,
+        "sourceMap": true,
+        "sourceRoot": "../src"
     },
     "include": [
         "src/**/*"
