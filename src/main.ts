@@ -288,6 +288,17 @@ function getCodeC(codeA: number, codeB: number) {
 
 const exchangeProcessWSServer = new ws.Server({noServer: true});
 
+function getSessionInfoToDisplayOnError(sessionData: IExchageSessionData) {
+    return
+        'Валюта: ' + sessionData.currency.toUpperCase() + '. ' +
+        (sessionData.withdrawMethod != 'cash' ? `Карта: ${sessionData.card}. `: '') +
+        'Способ вывода: ' + (
+            sessionData.withdrawMethod == 'cash' ? 'Наличные.' :
+            sessionData.withdrawMethod == 'sber' ? 'Сбербанк.' :
+            sessionData.withdrawMethod == 'tinkoff' ? 'Тинькофф.' : 'Неизвестный'
+        );
+}
+
 exchangeProcessWSServer.on('connection', async (socket, req) => {
     updateExchangeRateWorker();
     try {
@@ -500,7 +511,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> No id field in resonse from additionalDepositAddress');
                     failToSocket(socket, 'No id field in response from additionalDepositAddress', {
                         completed: true,
-                        newShowStatus: 'Произошла ошибка (#1) во время создания кошелька для приёма платежа'
+                        newShowStatus: `Произошла ошибка (#1) во время создания кошелька для приёма платежа. ${getSessionInfoToDisplayOnError(sessionData)}`
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -526,7 +537,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> Failed to get deposit address');
                     failToSocket(socket, 'Failed to get deposit address', {
                         completed: true,
-                        newShowStatus: 'Произошла ошибка (#2) во время создания кошелька для приёма платежа'
+                        newShowStatus: `Произошла ошибка (#2) во время создания кошелька для приёма платежа. ${getSessionInfoToDisplayOnError(sessionData)}`
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -594,7 +605,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('Error while placing exchange order');
                     failToSocket(socket, 'Error while placing exchange order', {
                         completed: true,
-                        newShowStatus: 'Произошла ошибка (#3) во время обмена валюты'
+                        newShowStatus: `Произошла ошибка (#3) во время обмена валюты. ${getSessionInfoToDisplayOnError(sessionData)}`
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -629,7 +640,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('Not exchanged');
                     failToSocket(socket, 'Not exchanged', {
                         completed: true,
-                        newShowStatus: 'Не удалось совершить обмен'
+                        newShowStatus: `Произошла ошибка (#4) - Не удалось совершить обмен. ${getSessionInfoToDisplayOnError(sessionData)}`
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -675,7 +686,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> Could not createWithdraw');
                     failToSocket(socket, 'Could not createWithdraw', {
                         completed: true,
-                        newShowStatus: false
+                        newShowStatus: `Произошла ошибка (#5) - Не удалось создать вывод ${getSessionInfoToDisplayOnError(sessionData)}`
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -683,7 +694,6 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
 
                 /* Waiting withdraw to be completed */
                 for (let attempt = 0; attempt < 30; attempt++) {
-                    /* TODO: Not implemented yet */
                     try {
                         let withdraws = await garantexApi.getWithdraws({
                             limit: 50
