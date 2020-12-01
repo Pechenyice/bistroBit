@@ -425,8 +425,8 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         reason = 'Указанная карта не принадлежит РФ';
                     } else {
                         correctWithdrawMethod =
-                            parsedData.withdrawMethod == 'tinkoff' ? cardDataByBinCode.data.bank.name == 'TINKOFF BANK' :
-                            parsedData.withdrawMethod == 'sber' ? cardDataByBinCode.data.bank.name == 'SAVINGS BANK OF THE RUSSIAN FEDERATION (SBERBANK)' :
+                            parsedData.withdrawMethod == 'tinkoff' ? cardDataByBinCode.data.bank.name.toLoverCase().includes('tinkoff') :
+                            parsedData.withdrawMethod == 'sber' ? cardDataByBinCode.data.bank.name.toLoverCase().includes('sberbank') :
                             parsedData.withdrawMethod == 'anyCard' ? true : false;
                         let bankName =
                             parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
@@ -754,7 +754,7 @@ wsServer.on('upgrade', (req, socket, head) => {
     }
 });
 
-wsServer.listen(3000);
+wsServer.listen(81);
 
 }
 

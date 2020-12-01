@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isCash = false;
     let preloadReady = 0;
 
-    const hostName = 'c90d5587e6ab.ngrok.io';
+    const hostName = '0820e2979c3a.ngrok.io';
     
     let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
 
