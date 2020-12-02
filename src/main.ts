@@ -291,14 +291,18 @@ function getCodeC(codeA: number, codeB: number) {
 const exchangeProcessWSServer = new ws.Server({noServer: true});
 
 function getSessionInfoToDisplayOnError(sessionData: IExchageSessionData) {
-    return
-        'Валюта: ' + sessionData.currency.toUpperCase() + '. ' +
-        (sessionData.withdrawMethod != 'cash' ? `Карта: ${sessionData.card}. `: '') +
-        'Способ вывода: ' + (
-            sessionData.withdrawMethod == 'cash' ? 'Наличные.' :
-            sessionData.withdrawMethod == 'sber' ? 'Сбербанк.' :
-            sessionData.withdrawMethod == 'tinkoff' ? 'Тинькофф.' : 'Неизвестный'
-        );
+    if (sessionData.withdrawMethod != 'cash') {
+        let cardPrefix =
+            sessionData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
+            sessionData.withdrawMethod == 'sber' ? 'Сбербанк' : 'Карта';
+        return
+            'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
+            `${cardPrefix}: ${sessionData.card}`
+    } else {
+        return
+            'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
+            `Способ вывода: Наличные`
+    }
 }
 
 exchangeProcessWSServer.on('connection', async (socket, req) => {
@@ -514,7 +518,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> No id field in resonse from additionalDepositAddress');
                     failToSocket(socket, 'No id field in response from additionalDepositAddress', {
                         completed: true,
-                        newShowStatus: `Произошла ошибка (#1) во время создания кошелька для приёма платежа. ${getSessionInfoToDisplayOnError(sessionData)}`
+                        newShowStatus:
+                            `Произошла ошибка (#1) во время создания кошелька для приёма платежа.<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -543,16 +549,24 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> Failed to get deposit address');
                     failToSocket(socket, 'Failed to get deposit address', {
                         completed: true,
-                        newShowStatus: `Произошла ошибка (#2) во время создания кошелька для приёма платежа. ${getSessionInfoToDisplayOnError(sessionData)}`
+                        newShowStatus:
+                            `Произошла ошибка (#2) во время создания кошелька для приёма платежа.<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
                     return;
                 } 
 
+                let cardPrefix =
+                    parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
+                    parsedData.withdrawMethod == 'sber' ? 'Сбербанк' : 'Карта';
                 successToSocket(socket, {
                     completed: false,
-                    newShowStatus: `Ожидание платежа. Валюта: ${sessionData.currency.toLowerCase()}, Карта: ${sessionData.card}, Способ вывода: ${sessionData.withdrawMethod}`,
+                    newShowStatus:
+                        `Ожидание платежа<br>` +
+                        `Криптовалюта: ${sessionData.currency.toLowerCase()}<br>` +
+                        `${cardPrefix}: ${sessionData.card}`,
                     depositAddress: sessionData.depositAddress
                 });
                 database.addSessionDataState(db, sessionData);
@@ -611,7 +625,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('Error while placing exchange order');
                     failToSocket(socket, 'Error while placing exchange order', {
                         completed: true,
-                        newShowStatus: `Произошла ошибка (#3) во время обмена валюты. ${getSessionInfoToDisplayOnError(sessionData)}`
+                        newShowStatus:
+                            `Произошла ошибка (#3) во время обмена валюты.<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -646,7 +662,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('Not exchanged');
                     failToSocket(socket, 'Not exchanged', {
                         completed: true,
-                        newShowStatus: `Произошла ошибка (#4) - Не удалось совершить обмен. ${getSessionInfoToDisplayOnError(sessionData)}`
+                        newShowStatus:
+                            `Произошла ошибка (#4) - Не удалось совершить обмен.<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
@@ -692,7 +710,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     console.log('<ERROR> Could not createWithdraw');
                     failToSocket(socket, 'Could not createWithdraw', {
                         completed: true,
-                        newShowStatus: `Произошла ошибка (#5) - Не удалось создать вывод ${getSessionInfoToDisplayOnError(sessionData)}`
+                        newShowStatus:
+                            `Произошла ошибка (#5) - Не удалось создать вывод<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
