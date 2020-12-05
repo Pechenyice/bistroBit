@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isCash = false;
     let preloadReady = 0;
 
-    const hostName = 'aff217f53eca.ngrok.io';
+    const hostName = '5d7cbdbc1fc1.ngrok.io/';
     
     let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
 
@@ -39,9 +39,18 @@ document.addEventListener("DOMContentLoaded", () => {
         rates[0].classList.remove('courseRotationState')
         rates[1].classList.remove('courseRotationState')
         rates[2].classList.remove('courseRotationState')
-        rates[0].innerHTML = (Math.floor(Number(data['rates']['btc_rub'])*100)/100).toLocaleString();
-        rates[1].innerHTML = (Math.floor(Number(data['rates']['eth_rub'])*100)/100).toLocaleString();
-        rates[2].innerHTML = (Math.floor(Number(data['rates']['usdt_rub'])*100)/100).toLocaleString();
+        rates[0].innerHTML = (Math.floor(Number(data['rates']['btc_rub'])*100)/100).toFixed(2);
+        rates[0].innerHTML = (Number(rates[0].innerHTML)).toLocaleString('ru-RU');
+        let fixCheck = rates[0].innerHTML.split(',');
+        if (fixCheck[1].length < 2) rates[0].innerHTML += '0';
+        rates[1].innerHTML = (Math.floor(Number(data['rates']['eth_rub'])*100)/100).toFixed(2);
+        rates[1].innerHTML = (Number(rates[1].innerHTML)).toLocaleString('ru-RU');
+        fixCheck = rates[1].innerHTML.split(',');
+        if (fixCheck[1].length < 2) rates[1].innerHTML += '0';
+        rates[2].innerHTML = (Math.floor(Number(data['rates']['usdt_rub'])*100)/100).toFixed(2);
+        rates[2].innerHTML = (Number(rates[2].innerHTML)).toLocaleString('ru-RU');
+        fixCheck = rates[2].innerHTML.split(',');
+        if (fixCheck[1].length < 2) rates[2].innerHTML += '0';
     };
 
     wsPreload.onmessage = message => {
@@ -361,6 +370,14 @@ document.addEventListener("DOMContentLoaded", () => {
         session.card = "";
     });
 
+    document.getElementById('cardInput').addEventListener('keyup', function() {
+        let tmp = this.value.split(" ").join("");
+        if (tmp.length > 0) {
+          tmp = tmp.match(new RegExp('.{1,4}', 'g')).join(" ");
+        }
+        this.value = tmp;
+      });
+
     document.getElementById('cardInput').addEventListener('input', () => {
 
         if (!isCash) {
@@ -382,7 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
             //     session.card = "";
             // }
             value = value.replace(/\s/g, '');
-            if (value.length <= 20 && value.length >= 16) {
+            if (value.length <= 23 && value.length >= 16) {
                 if(/^[0-9]+$/.test(value)){
                     session.card = value;
                     // if (session.withdrawMethod) 
@@ -411,19 +428,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!isCash) {
             let value = document.getElementById('cardInput').value;
             value = value.replace(/\s/g, '');
-            if (value.length <= 20 && value.length >= 16) {
+            if (value.length <= 23 && value.length >= 16) {
                 if(/^[0-9]+$/.test(value)){
-                    let tmp = "";
+                    // let tmp = "";
                     // for (let i = 3; i < value.length; i+=4) {
                     //     let beforeSubStr = value.substring(i-3,i + 1);
                     //     tmp += beforeSubStr + " ";
                     // }
-                    for (let i = 0; i < value.length; i++) {
+                    // for (let i = 0; i < value.length; i++) {
                         // let beforeSubStr = value.substring(i-3,i + 1);
-                        tmp += value[i];
-                        if (i % 4 == 3) tmp += " ";
-                    }
-                    document.getElementById('cardInput').value = tmp;
+                        // tmp += value[i];
+                        // if (i % 4 == 3) tmp += " ";
+                    // }
+                    // document.getElementById('cardInput').value = tmp;
                     session.card = value;
                     // if (session.withdrawMethod) 
                     document.getElementById('inputNext').classList.add('active');
@@ -440,23 +457,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     
                 } else {
+                    if (value) {
+                        document.getElementById('cardInput').classList.add('wrong');
+                        document.getElementById('inputNext').classList.remove('active');
+                        session.card = "";
+                    }
+                }
+            } else {
+                if (value) {
                     document.getElementById('cardInput').classList.add('wrong');
                     document.getElementById('inputNext').classList.remove('active');
                     session.card = "";
                 }
-            } else {
-                document.getElementById('cardInput').classList.add('wrong');
-                document.getElementById('inputNext').classList.remove('active');
-                session.card = "";
             }
         }
     });
 
     document.getElementById('cardInput').addEventListener('focus', () => {
-        if (!isCash) {
-            document.getElementById('cardInput').value = document.getElementById('cardInput').value.replace(/\s/g, '');
-        }
+        document.getElementById('cardInput').classList.remove('wrong');
+        // if (!isCash) {
+        //     document.getElementById('cardInput').value = document.getElementById('cardInput').value.replace(/\s/g, '');
+        // }
     });
+
+    let cardMemory = "";
 
     
 
@@ -466,6 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log(session.withdrawMethod)
 
             if (withdrawMethods[i].value == 'cash') {
+                cardMemory = document.getElementById('cardInput').value;
                 document.getElementById('forCashLabel').innerHTML = "Сохраните этот код:";
                 document.getElementById('cardInput').setAttribute('readonly', true);
                 document.getElementById('cardInput').value = cashCode;
@@ -476,11 +501,14 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 isCash = 0;
                 document.getElementById('forCashLabel').innerHTML = "Номер карты:";
+                document.getElementById('cardInput').value = cardMemory;
                 document.getElementById('cardInput').focus();
                 document.getElementById('cardInput').blur();
                 // document.getElementById('inputNext').classList.remove('active');
                 document.getElementById('cardInput').removeAttribute('readonly');
                 document.getElementById('cardInput').setAttribute('placeholder', "____ ____ ____ ____");
+                
+                
                 // document.getElementById('cardInput').value = "";
             }
         });

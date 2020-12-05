@@ -58,7 +58,7 @@
         <div id="content">
 
             <div class="contentBlock" id="currencyBlock">
-                <div class="contentBlockName">Выберите валюту для обмена</div>
+                <div class="contentBlockName">Выберите криптовалюту для обмена на рубли</div>
 
                 <div id="contentBlockMain">
 
@@ -115,13 +115,23 @@
                               
                             <label class="container fakeContainer">
                                 <!-- <img src="assets/logo/another.jpg" class="radioLogo" id="anyCardlogo"/> -->
-                                Любая карта
+                                <div class="question withdrawQuestion"><i class="far fa-question-circle"></i>
+                                    <div class="answer">
+                                        <p class="answerText">Выберите карту, на которую хотите вывести деньги.<br/>В случае выбора наличных сохраните код, который будет выведен</p>
+                                    </div>
+                                </div>
+                                Любая карта РФ
                                 <input type="radio" checked="checked" name="paymentType" disabled class="withdrawMethods" value="anyCard">
                                 <span class="checkmark"></span>
                             </label>
                               
                             <label class="container fakeContainer">
                                 <!-- <img src="assets/logo/cash.png" class="radioLogo" /> -->
+                                <div class="question withdrawQuestion"><i class="far fa-question-circle"></i>
+                                    <div class="answer">
+                                        <p class="answerText">Выберите карту, на которую хотите вывести деньги.<br/>В случае выбора наличных сохраните код, который будет выведен</p>
+                                    </div>
+                                </div>
                                 Наличные
                                 <input type="radio" name="paymentType" disabled class="withdrawMethods" value="cash">
                                 <span class="checkmark"></span>
@@ -136,7 +146,7 @@
                             </div>
                         </div>
                         <p class="inputLabel" id="forCashLabel">Номер карты:</p>
-                        <input type="text" name="purse" class="inputInput" id="cardInput" autocomplete="off" placeholder="____ ____ ____ ____" maxlength="20"/>
+                        <input type="text" name="purse" class="inputInput" id="cardInput" autocomplete="off" placeholder="____ ____ ____ ____" maxlength="23"/>
                         <img src="" class="inputImage" id="cardImage" />
                     </div>
 
@@ -147,7 +157,7 @@
 
             <div class="contentBlock" id="preloaderBlock">
 
-                <div id="preloaderBack"><i class="fas fa-arrow-left"></i>&nbsp; Отменить обмен</div>
+                <div id="preloaderBack"><i class="fas fa-times"></i></div>
 
                 <div class="contentPreloaderBlockMain" id="qrMainBlock">
                     <div class="question mainQuestion"><i class="far fa-question-circle"></i>
