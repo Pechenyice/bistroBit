@@ -17,7 +17,6 @@ async function bintableTest(bin: string) {
     let response = await fetch(`https://api.bintable.com/v1/${bin}?api_key=${process.env.BINTABLE_API_KEY}`);
     try {
         let text = await response.text();
-        console.log(text);
         return JSON.parse(text);
     } catch (e) {
         console.log(e);
@@ -91,7 +90,6 @@ sessionsRouter.get('/:sessionId', async (req, res) => {
 });
 
 app.use((req, res, next) => {
-    console.log(req.hostname);
     if (req.hostname == process.env.DEFAULT_HOSTNAME) {
         defaultRouter(req, res, next);
     } else if (req.hostname == process.env.SESSIONS_HOSTNAME) {
