@@ -559,13 +559,13 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
 
                 let cardPrefix =
                     parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
-                    parsedData.withdrawMethod == 'sber' ? 'Сбербанк' : 'Карта';
+                    parsedData.withdrawMethod == 'sber' ? 'Сбербанк' :
+                    parsedData.withdrawMethod == 'anyCard' ? 'Карта' : 'Наличные';
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus:
                         `Ожидание платежа<br>` +
-                        `Криптовалюта: ${sessionData.currency.toLowerCase()}<br>` +
-                        `${cardPrefix}: ${sessionData.card}`,
+                        `${sessionData.currency.toUpperCase()} -> ${cardPrefix} ${sessionData.card}`,
                     depositAddress: sessionData.depositAddress
                 });
                 database.addSessionDataState(db, sessionData);
