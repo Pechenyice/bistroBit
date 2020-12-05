@@ -565,7 +565,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     completed: false,
                     newShowStatus:
                         `Ожидание платежа<br>` +
-                        `${sessionData.currency.toUpperCase()} -> ${cardPrefix} ${sessionData.card}`,
+                        `${sessionData.currency.toUpperCase()} -> ${cardPrefix} ${sessionData.card.match(/.{1,4}/g).join(' ')}`,
                     depositAddress: sessionData.depositAddress
                 });
                 database.addSessionDataState(db, sessionData);
