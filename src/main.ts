@@ -290,18 +290,19 @@ function getCodeC(codeA: number, codeB: number) {
 
 const exchangeProcessWSServer = new ws.Server({noServer: true});
 
-function getSessionInfoToDisplayOnError(sessionData: IExchageSessionData) {
+function getSessionInfoToDisplayOnError(sessionData: IExchageSessionData): string {
+    console.log('Generating info message with:', sessionData);
     if (sessionData.withdrawMethod != 'cash') {
         let cardPrefix =
             sessionData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
             sessionData.withdrawMethod == 'sber' ? 'Сбербанк' : 'Карта';
         return
             'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
-            `${cardPrefix}: ${sessionData.card}`
+            `${cardPrefix}: ${sessionData.card}`;
     } else {
         return
             'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
-            `Способ вывода: Наличные`
+            `Способ вывода: Наличные`;
     }
 }
 
@@ -617,17 +618,19 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         volume: sessionData.depositAmount,
                         side: 'sell'
                     });
+                    console.log(order);
                     if (!order || !order.id) throw new Error();
                     sessionData.orderId = order.id;
                     database.addSessionDataState(db, sessionData);
                 } catch (e) {
                     console.log(e);
                     console.log('Error while placing exchange order');
+                    let infoMessage = getSessionInfoToDisplayOnError(sessionData);
                     failToSocket(socket, 'Error while placing exchange order', {
                         completed: true,
                         newShowStatus:
                             `Произошла ошибка (#3) во время обмена валюты.<br>` +
-                            getSessionInfoToDisplayOnError(sessionData)
+                            infoMessage
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
