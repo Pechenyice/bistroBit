@@ -2,7 +2,7 @@
     "type": "private",
     "scripts": {
         "build": "tsc --project tsconfig.json",
-        "start": "sudo node out/main.js",
+        "start": "sudo node --enable-source-maps out/main.js",
         "dev-start": "npm run build && npm start",
         "test": "npm run build && node out/test.js"
     },
