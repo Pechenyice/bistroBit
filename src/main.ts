@@ -570,8 +570,8 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 });
                 database.addSessionDataState(db, sessionData);
                 
-                /* 60 Attempts with delay in 10 seconds to wait for user deposit */
-                for (let attempt = 0; attempt < 60; attempt++) {
+                /* 1440 Attempts with delay in 30 seconds to wait for user deposit */
+                for (let attempt = 0; attempt < 1440; attempt++) {
                     console.log('Waiting user deposit #' + attempt);
                     try {
                         let deposits = await garantexApi.getDeposits({
@@ -587,7 +587,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         }
                         if (sessionData.depositAmount) break;
                     } catch {}
-                    await delay(10000);
+                    await delay(30000);
                 }
 
                 if (!sessionData.depositAmount) {
