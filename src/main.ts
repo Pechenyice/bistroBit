@@ -614,7 +614,8 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     let order = await garantexApi.createNewOrder({
                         market: market,
                         volume: sessionData.depositAmount,
-                        side: 'sell'
+                        side: 'sell',
+                        ord_type: 'market'
                     });
                     console.log(order);
                     if (!order || !order.id) throw new Error();
