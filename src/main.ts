@@ -561,10 +561,14 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     parsedData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
                     parsedData.withdrawMethod == 'sber' ? 'Сбербанк' :
                     parsedData.withdrawMethod == 'anyCard' ? 'Карта' : 'Наличные';
+                let minimalDepositSum =
+                    parsedData.currency == 'btc' ? '0.0003' :
+                    parsedData.currency == 'eth' ? '0.03' :
+                    parsedData.currency == 'usdt' ? '10' : '0';
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus:
-                        `Ожидание платежа<br>` +
+                        `Ожидание платежа. Минимальная сумма - ${minimalDepositSumSum} ${sessionData.currency.toUpperCase()}<br>` +
                         `${sessionData.currency.toUpperCase()} -> ${cardPrefix} ${sessionData.card.match(/.{1,4}/g).join(' ')}`,
                     depositAddress: sessionData.depositAddress
                 });
@@ -595,6 +599,15 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     failToSocket(socket, 'Did not get deposit in 10+ minutes', {
                         completed: true,
                         newShowStatus: 'Время ожидания перевода истекло'
+                    });
+                    sessionData.status = SessionStatus.failed;
+                    database.addSessionDataState(db, sessionData);
+                    return;
+                } else if (parseFloat(sessionData.depositAmount) < parseFloat(minimalDepositSum)) {
+                    console.log(`Deposit sum ${sessionData.depositAmount} lower than minimal`);
+                    failToSocket(socket, `Deposit sum ${sessionData.depositAmount} lower than minimal`, {
+                        completed: true,
+                        newShowStatus: 'Сумма депозита меньше минимальной'
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
