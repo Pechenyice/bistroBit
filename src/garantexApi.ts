@@ -341,14 +341,14 @@ export default class GarantexApi {
     }
 
     /**
-     * GET /orders API Endpoint.
+     * GET /order API Endpoint.
      * Returns order information
      */
     async getOrder(options: {
         id: number | string
     }): Promise<IOrder> {
         let queryWithData = qs.encode(options);
-        let response = await fetch(`https://${this.host}/api/v2/orders?${queryWithData}`, {
+        let response = await fetch(`https://${this.host}/api/v2/order?${queryWithData}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${this.JWT}`,
