@@ -127,6 +127,7 @@ async function calculateExchangeRate(market: 'btcrub' | 'ethrub' | 'usdtrub'): P
             else if (market == 'usdtrub' && totalVolume >= 5000) break;
         }
         let exchangeRate = totalPrice / admittedBidsCount;
+        exchangeRate = (exchangeRate / 100) * (100 - parseInt(process.env.FIRST_FEE) - parseInt(process.env.SECOND_FEE));
         return exchangeRate;
     }
 }
@@ -625,6 +626,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     usdt = 'usdtrub'
                 };
                 let market = markets[sessionData.currency];
+                let fixCourse = await calculateExchangeRate(market);
                 try {
                     let order = await garantexApi.createNewOrder({
                         market: market,
@@ -667,6 +669,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                             id: sessionData.orderId
                         });
                         if (orderInfo && orderInfo.state == 'done') {
+                            console.log('Exchanged', orderInfo);
                             sessionData.exchanged = true;
                             sessionData.fundsReceived = orderInfo.funds_received;
                             break;
@@ -695,37 +698,33 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 if (sessionData.withdrawMethod == 'cash') {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
-                        `1 ${sessionData.currency.toUpperCase()} = ${course} р. ` +
+                        `1 ${sessionData.currency.toUpperCase()} = ${fixCourse} р. ` +
                         `Сохраните второй секретный код: ${sessionData.codeC}`
                 } else {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
-                        `1 ${sessionData.currency.toUpperCase()} = ${course} р.`
+                        `1 ${sessionData.currency.toUpperCase()} = ${fixCourse} р.`
                 }
 
-                successToSocket(socket, {
-                    completed: false,
-                    newShowStatus: newShowStatus
-                });
-                database.addSessionDataState(db, sessionData);
                 
-                if (sessionData.withdrawMethod == 'cash') return;
-
-                try {
-                    let withdrawData = await garantexApi.createWithdraw({
-                        currency: 'rub',
-                        amount: sessionData.fundsReceived,
-                        rid: sessionData.card,
-                        gateway_type_id:
-                            sessionData.withdrawMethod == 'sber'    ? 8 :
-                            sessionData.withdrawMethod == 'tinkoff' ? 16 :
-                            sessionData.withdrawMethod == 'anyCard' ? 37 : 0 // 0 Is cash
+                if (sessionData.withdrawMethod == 'cash') {
+                    successToSocket(socket, {
+                        completed: true,
+                        newShowStatus: newShowStatus
                     });
-                    sessionData.withdrawId = withdrawData.id;
+                    sessionData.status = SessionStatus.succeed;
                     database.addSessionDataState(db, sessionData);
-                } catch {
-                    console.log('<ERROR> Could not createWithdraw');
-                    failToSocket(socket, 'Could not createWithdraw', {
+                    return;
+                } else {
+                    successToSocket(socket, {
+                        completed: false,
+                        newShowStatus: newShowStatus
+                    });
+                }
+                
+                if (fixCourse > course) {
+                    console.log('<ERROR> fixCourse > course');
+                    failToSocket(socket, 'fixCourse > course', {
                         completed: true,
                         newShowStatus:
                             `Произошла ошибка (#5) - Не удалось создать вывод<br>` +
@@ -733,16 +732,47 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     });
                     sessionData.status = SessionStatus.failed;
                     database.addSessionDataState(db, sessionData);
+                    return;
+                }
+
+                let withdrawSum = roundToTen(parseFloat(sessionData.depositAmount) * fixCourse);
+                try {
+                    console.log('Creating withdraw');
+                    let withdrawData = await garantexApi.createWithdraw({
+                        currency: 'rub',
+                        amount: withdrawSum,
+                        rid: sessionData.card,
+                        gateway_type_id:
+                            sessionData.withdrawMethod == 'sber'    ? 8 :
+                            sessionData.withdrawMethod == 'tinkoff' ? 16 :
+                            sessionData.withdrawMethod == 'anyCard' ? 37 : 0 // 0 Is cash
+                    });
+                    console.log(withdrawData);
+                    sessionData.withdrawId = withdrawData.id;
+                    database.addSessionDataState(db, sessionData);
+                } catch {
+                    console.log('<ERROR> Could not createWithdraw');
+                    failToSocket(socket, 'Could not createWithdraw', {
+                        completed: true,
+                        newShowStatus:
+                            `Произошла ошибка (#6) - Не удалось создать вывод<br>` +
+                            getSessionInfoToDisplayOnError(sessionData)
+                    });
+                    sessionData.status = SessionStatus.failed;
+                    database.addSessionDataState(db, sessionData);
+                    return;
                 }
 
                 /* Waiting withdraw to be completed */
-                for (let attempt = 0; attempt < 30; attempt++) {
+                for (let attempt = 0; attempt < 100; attempt++) {
+                    console.log(`Waiting for withdraw ${attempt}`);
                     try {
                         let withdraws = await garantexApi.getWithdraws({
                             limit: 50
                         });
                         for (let withdraw of withdraws) {
                             if (withdraw.id == sessionData.withdrawId) {
+                                console.log(withdraw);
                                 if (withdraw.state == 'succeed') {
                                     sessionData.withdrawSucceed = true;
                                     break;
@@ -750,7 +780,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                             }
                         }
                     } catch {}
-                    await delay(10000);
+                    await delay(15000);
                 }
 
                 if (!sessionData.withdrawSucceed) {
@@ -758,7 +788,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         completed: true,
                         newShowStatus:
                             `Перевод средств на карту скоро будет завершён. ` +
-                            `Вы обменяли ${sessionData.depositAmount} ${sessionData.currency.toUpperCase()} на ${sessionData.fundsReceived} р.`
+                            `Вы обменяли ${sessionData.depositAmount} ${sessionData.currency.toUpperCase()} на ${withdrawSum} р.`
                     });
                     sessionData.status = SessionStatus.succeed;
                     database.addSessionDataState(db, sessionData);
@@ -768,8 +798,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 successToSocket(socket, {
                     completed: true,
                     newShowStatus:
-                        `Обмен успешно завершён. ` +
-                        `${sessionData.depositAmount} ${sessionData.currency.toUpperCase()} = ${sessionData.fundsReceived} р.`
+                        `Обмен ${sessionData.depositAmount} ${sessionData.currency.toUpperCase()} успешно завершён. Курс обмена: ` +
+                        `1 ${sessionData.currency.toUpperCase()} = ${(withdrawSum / parseFloat(sessionData.depositAmount)).toFixed(2)}<br>` +
+                        `${sessionData.depositAmount} ${sessionData.currency.toUpperCase()} = ${withdrawSum} р.`
                 });
                 sessionData.status = SessionStatus.succeed;
                 database.addSessionDataState(db, sessionData);
