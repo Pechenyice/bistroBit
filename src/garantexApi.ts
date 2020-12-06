@@ -429,7 +429,7 @@ export default class GarantexApi {
                 'Authorization': `Bearer ${this.JWT}`
             }
         });
-        return response.json();
+        return await response.json();
     }
 
     /**
