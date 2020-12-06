@@ -348,7 +348,7 @@ export default class GarantexApi {
         id: number | string
     }): Promise<IOrder> {
         let queryWithData = qs.encode(options);
-        let response = await fetch(`https://${this.host}/api/v2/orders${queryWithData}`, {
+        let response = await fetch(`https://${this.host}/api/v2/orders?${queryWithData}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${this.JWT}`,
