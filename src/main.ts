@@ -564,9 +564,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                     parsedData.withdrawMethod == 'sber' ? 'Сбербанк' :
                     parsedData.withdrawMethod == 'anyCard' ? 'Карта' : 'Наличные';
                 let minimalDepositSum =
-                    parsedData.currency == 'btc' ? '0.0003' :
-                    parsedData.currency == 'eth' ? '0.03' :
-                    parsedData.currency == 'usdt' ? '10' : '0';
+                    sessionData.currency == 'btc' ? '0.0003' :
+                    sessionData.currency == 'eth' ? '0.03' :
+                    sessionData.currency == 'usdt' ? '10' : '0';
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus:
