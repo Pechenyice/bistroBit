@@ -627,6 +627,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 };
                 let market = markets[sessionData.currency];
                 let fixCourse = await calculateExchangeRate(market);
+                console.log('Fix course:', fixCourse);
                 try {
                     let order = await garantexApi.createNewOrder({
                         market: market,
@@ -693,8 +694,9 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
 
                 const roundToTen = (value: number) => Math.floor(value / 10) * 10;
                 let newShowStatus: string;
-                let course = roundToTen(+sessionData.fundsReceived) / +sessionData.depositAmount;
-                course = course / 100 * (100 - +process.env.FIRST_FEE - +process.env.SECOND_FEE);
+                let course = +sessionData.fundsReceived / +sessionData.depositAmount;
+                // course = course / 100 * (100 - +process.env.FIRST_FEE - +process.env.SECOND_FEE);
+                console.log(course);
                 if (sessionData.withdrawMethod == 'cash') {
                     newShowStatus =
                         `Произошёл обмен по курсу ` +
