@@ -341,7 +341,7 @@ export default class GarantexApi {
     }
 
     /**
-     * GET /orders API Endpoint
+     * GET /orders API Endpoint.
      * Returns order information
      */
     async getOrder(options: {
@@ -353,6 +353,41 @@ export default class GarantexApi {
             headers: {
                 'Authorization': `Bearer ${this.JWT}`,
             }
+        });
+        return await response.json();
+    }
+
+    /**
+     * POST /order/delete API Endpoint.
+     * Deletes order by id
+     */
+    async deleteOrder(options: {
+        id: number | string
+    }): Promise<IOrder> {
+        let response = await fetch(`https://${this.host}/api/v2/order/delete`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            },
+            body: JSON.stringify(options)
+        });
+        return await response.json();
+    }
+
+    /**
+     * POST /orders/clear API Endpoint.
+     * Deletes all orders in selected market / side
+     */
+    async clearOrders(options: {
+        market?: TMarketId,
+        side?: 'sell' | 'buy'
+    }): Promise<IOrder[]> {
+        let response = await fetch(`https://${this.host}/api/v2/orders/clear`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.JWT}`
+            },
+            body: JSON.stringify(options)
         });
         return await response.json();
     }
