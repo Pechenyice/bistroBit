@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isCash = false;
     let preloadReady = 0;
 
-    const hostName = '5d7cbdbc1fc1.ngrok.io/';
+    const hostName = '62.113.113.183:3000';
     
     let ws = new WebSocket('ws://' + hostName + '/exchangeRatesWSServer');
 
@@ -36,6 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
             rates[2].innerHTML = '<i class="fas fa-spinner"></i>';
             return;
         }
+
+        // data['rates']['usdt_rub'] = 74.02;
+
         rates[0].classList.remove('courseRotationState')
         rates[1].classList.remove('courseRotationState')
         rates[2].classList.remove('courseRotationState')
@@ -48,9 +51,15 @@ document.addEventListener("DOMContentLoaded", () => {
         fixCheck = rates[1].innerHTML.split(',');
         if (fixCheck[1].length < 2) rates[1].innerHTML += '0';
         rates[2].innerHTML = (Math.floor(Number(data['rates']['usdt_rub'])*100)/100).toFixed(2);
+
+        // console.log(rates[2].innerHTML)
+
         rates[2].innerHTML = (Number(rates[2].innerHTML)).toLocaleString('ru-RU');
+        // console.log(rates[2].innerHTML)
+
         fixCheck = rates[2].innerHTML.split(',');
-        if (fixCheck[1].length < 2) rates[2].innerHTML += '0';
+        if (fixCheck[1] && fixCheck[1].length < 2) rates[2].innerHTML += '0';
+        if (!fixCheck[1]) rates[2].innerHTML += ',00';
     };
 
     wsPreload.onmessage = message => {
@@ -119,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (message['data'] && message['data']['depositAddress']) {
-            document.getElementById('forCopy').innerHTML = message['data']['depositAddress'] + '&nbsp; <i class="far fa-copy"></i>';
+            document.getElementById('forCopy').innerHTML = '<span id="forCopyContent">' + message['data']['depositAddress'] + '</span>&nbsp; <i class="far fa-copy"></i>';
             document.getElementById('forCopy').classList.remove('noDisplay');
             document.getElementById('preQR').classList.add('noDisplay');
 
@@ -537,8 +546,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // });
 
     document.getElementById('forCopy').addEventListener('click', () => {
-        copyToClipboard(document.getElementById('forCopy'));
-        document.getElementById('forCopy').style.animationName = 'scale';
+        copyToClipboard(document.getElementById('forCopyContent'));
+        document.getElementById('forCopy').classList.add('copyAnimationClass');
+        setTimeout(()=>{document.getElementById('forCopy').classList.remove('copyAnimationClass');}, 400);
+    });
+
+    document.getElementById('sessionIDBlock').addEventListener('click', () => {
+        copyToClipboard(document.getElementById('sessionForCopy'));
+        document.getElementById('sessionIDBlock').classList.add('copyAnimationClass');
+        setTimeout(()=>{document.getElementById('sessionIDBlock').classList.remove('copyAnimationClass');}, 400);
     });
 
     document.getElementById('inputNext').addEventListener('click', () => {

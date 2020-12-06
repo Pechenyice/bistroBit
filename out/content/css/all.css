@@ -619,10 +619,15 @@ body.day {
 
 #forCopy {
     cursor: pointer;
+    
+    word-wrap: break-word;
+}
+
+.copyAnimationClass {
+    animation-name: scale;
     animation-timing-function: linear;
     animation-duration: .2s;
     animation-iteration-count: 2;
-    word-wrap: break-word;
 }
 
 .enterCenteredIcon {
@@ -754,6 +759,14 @@ body.day {
     position: absolute;
     left: -46px;
 }
+
+.questionContainsContainer:hover .answer {
+    display: flex;
+    left: calc(50% - 100px);
+    top: 20px;
+}
+
+
 
 @keyframes rotation {
     0% {
@@ -897,7 +910,7 @@ body.day {
         left: 0;
         width: 100%; */
         padding-top: 0px;
-        height: 100%;
+        height: 110%;
         /* transition: .3s;
         background-color: #212429;
         border-radius: 20px; */
@@ -992,7 +1005,7 @@ body.day {
     #preloaderBack {
         top: 25px;
         left: 25px;
-        width: max-content;
+        width: 40px;
         height: 40px;
         border-radius: 25px;
         font-size: 16px;

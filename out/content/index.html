@@ -45,7 +45,7 @@
             </div>
     </div>
     <div id="telHelp"><a href="tg://resolve?domain=don2quixote"><i class="fab fa-telegram"></i></a></div>
-    <div id="sessionIDBlock">ID Сессии:<span>?</span></div>
+    <div id="sessionIDBlock">ID Сессии:<span id="sessionForCopy">?</span></div>
     <div id="theme">
         <label class="switch">
             <input type="checkbox" id="themeSwap">
@@ -113,25 +113,25 @@
                                 <span class="checkmark"></span>
                             </label>
                               
-                            <label class="container fakeContainer">
+                            <label class="container fakeContainer questionContainsContainer">
                                 <!-- <img src="assets/logo/another.jpg" class="radioLogo" id="anyCardlogo"/> -->
-                                <div class="question withdrawQuestion"><i class="far fa-question-circle"></i>
+                                <!-- <div class="question withdrawQuestion"><i class="far fa-question-circle"></i> -->
                                     <div class="answer">
                                         <p class="answerText">Выберите карту, на которую хотите вывести деньги.<br/>В случае выбора наличных сохраните код, который будет выведен</p>
                                     </div>
-                                </div>
+                                <!-- </div> -->
                                 Любая карта РФ
                                 <input type="radio" checked="checked" name="paymentType" disabled class="withdrawMethods" value="anyCard">
                                 <span class="checkmark"></span>
                             </label>
                               
-                            <label class="container fakeContainer">
+                            <label class="container fakeContainer questionContainsContainer">
                                 <!-- <img src="assets/logo/cash.png" class="radioLogo" /> -->
-                                <div class="question withdrawQuestion"><i class="far fa-question-circle"></i>
+                                <!-- <div class="question withdrawQuestion"><i class="far fa-question-circle"></i> -->
                                     <div class="answer">
                                         <p class="answerText">Выберите карту, на которую хотите вывести деньги.<br/>В случае выбора наличных сохраните код, который будет выведен</p>
                                     </div>
-                                </div>
+                                <!-- </div> -->
                                 Наличные
                                 <input type="radio" name="paymentType" disabled class="withdrawMethods" value="cash">
                                 <span class="checkmark"></span>
@@ -157,7 +157,7 @@
 
             <div class="contentBlock" id="preloaderBlock">
 
-                <div id="preloaderBack"><i class="fas fa-times"></i></div>
+                <div id="preloaderBack" title="Отменить обмен"><i class="fas fa-times"></i></div>
 
                 <div class="contentPreloaderBlockMain" id="qrMainBlock">
                     <div class="question mainQuestion"><i class="far fa-question-circle"></i>
@@ -172,7 +172,7 @@
                 </div>
 
                 <div id="animatedLoading"><i class="fas fa-spinner"></i></div>
-                <p class="enterCentered" id="preloaderServerText">Отправка реквизитов</p>
+                <p class="enterCentered" id="preloaderServerText">Ожидание платежа<br/>Крипотовалюта:<br/>Сбербанк:</p>
             </div>
 
             <div class="contentBlock" id="failBlock">
