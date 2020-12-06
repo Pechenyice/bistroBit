@@ -367,7 +367,8 @@ export default class GarantexApi {
         let response = await fetch(`https://${this.host}/api/v2/order/delete`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.JWT}`
+                'Authorization': `Bearer ${this.JWT}`,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(options)
         });
@@ -385,7 +386,8 @@ export default class GarantexApi {
         let response = await fetch(`https://${this.host}/api/v2/orders/clear`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.JWT}`
+                'Authorization': `Bearer ${this.JWT}`,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(options)
         });
@@ -407,6 +409,7 @@ export default class GarantexApi {
             method: 'POST', 
             headers: {
                 'Authorization': `Bearer ${this.JWT}`,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(options)
         });
