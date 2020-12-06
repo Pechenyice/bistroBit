@@ -294,13 +294,15 @@ function getSessionInfoToDisplayOnError(sessionData: IExchageSessionData): strin
         let cardPrefix =
             sessionData.withdrawMethod == 'tinkoff' ? 'Тинькофф' :
             sessionData.withdrawMethod == 'sber' ? 'Сбербанк' : 'Карта';
-        return
+        let infoToDisplay =
             'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
             `${cardPrefix}: ${sessionData.card}`;
+        return infoToDisplay;
     } else {
-        return
+        let infoToDisplay =
             'Криптовалюта: ' + sessionData.currency.toUpperCase() + '.<br>' +
             `Способ вывода: Наличные`;
+        return infoToDisplay;
     }
 }
 
@@ -568,7 +570,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus:
-                        `Ожидание платежа. Минимальная сумма - ${minimalDepositSumSum} ${sessionData.currency.toUpperCase()}<br>` +
+                        `Ожидание платежа. Минимальная сумма - ${minimalDepositSum} ${sessionData.currency.toUpperCase()}<br>` +
                         `${sessionData.currency.toUpperCase()} -> ${cardPrefix} ${sessionData.card.match(/.{1,4}/g).join(' ')}`,
                     depositAddress: sessionData.depositAddress
                 });
