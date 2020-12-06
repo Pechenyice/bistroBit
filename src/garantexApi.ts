@@ -423,7 +423,7 @@ export default class GarantexApi {
         limit?: number
     }): Promise<IWithdraw[]> {
         let queryWithData = qs.encode(options);
-        let response = fetch(`https://${this.host}/api/v2/withdraws?${queryWithData}`, {
+        let response = await fetch(`https://${this.host}/api/v2/withdraws?${queryWithData}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${this.JWT}`
