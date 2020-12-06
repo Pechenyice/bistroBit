@@ -567,7 +567,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                 let minimalDepositSum =
                     sessionData.currency == 'btc' ? '0.0003' :
                     sessionData.currency == 'eth' ? '0.03' :
-                    sessionData.currency == 'usdt' ? '10' : '0';
+                    sessionData.currency == 'usdt' ? '3' : '0';
                 successToSocket(socket, {
                     completed: false,
                     newShowStatus:
