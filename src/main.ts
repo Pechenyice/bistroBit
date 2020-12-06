@@ -587,7 +587,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         }
                         if (sessionData.depositAmount) break;
                     } catch {}
-                    await delay(30000);
+                    await delay(15000);
                 }
 
                 if (!sessionData.depositAmount) {
@@ -615,7 +615,7 @@ exchangeProcessWSServer.on('connection', async (socket, req) => {
                         market: market,
                         volume: sessionData.depositAmount,
                         side: 'sell',
-                        ord_type: 'market'
+                        ord_type: 'default'
                     });
                     console.log(order);
                     if (!order || !order.id) throw new Error();
